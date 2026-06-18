@@ -21,7 +21,7 @@
 #include "sys/stat.h"
 #include "libs/tiny_ttf/lv_tiny_ttf.h"
 
-#include "ui.h"
+#include "hmi.h"
 
 #define TAG_SPIFFS "SPIFFS_INIT"
 

@@ -2,7 +2,7 @@ set(LV_DEMO_DIR ../managed_components/lvgl__lvgl/demos)
 file(GLOB_RECURSE LV_DEMOS_SOURCES ${LV_DEMO_DIR}/*.c)
 
 idf_component_register(
-    SRCS main.c ui.c ${LV_DEMOS_SOURCES}
+    SRCS main.c hmi.c hmi_events.c hmi_fonts.c ${LV_DEMOS_SOURCES}
     INCLUDE_DIRS . ${LV_DEMO_DIR}
     PRIV_REQUIRES esp_driver_i2c  nvs_flash bsp_extra)
 

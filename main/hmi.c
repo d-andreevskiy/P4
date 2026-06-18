@@ -12,55 +12,29 @@
 #include <esp_log.h>
 #include "esp_spiffs.h"
 #include "src/misc/lv_fs_private.h"
+#include "hmi.h"
 
-#define HMI_PRESSURE_MAX 16.0f
 #define HMI_SETPOINT_STEP 0.1f
 
 #define LV_FONT_FMT_TXT_LARGE_USER_DATA 0
 
 #define TAG "AI"
 
-/* Цвета исходного интерфейса */
-#define C_BG lv_color_hex(0x0B1118)
-#define C_TOP lv_color_hex(0x080D13)
-#define C_PANEL lv_color_hex(0x17212C)
-#define C_PANEL_2 lv_color_hex(0x1D2935)
-#define C_PANEL_3 lv_color_hex(0x111922)
-#define C_BORDER lv_color_hex(0x334250)
-#define C_BORDER_LT lv_color_hex(0x4B5B6B)
-#define C_TEXT lv_color_hex(0xF3F7FB)
-#define C_MUTED lv_color_hex(0xB8C1CC)
-#define C_GREEN lv_color_hex(0x79DF68)
-#define C_BLUE lv_color_hex(0x48A7FF)
-#define C_ORANGE lv_color_hex(0xFF982D)
-#define C_RED lv_color_hex(0xE22D2D)
-
-//  static lv_font_t *lv_font_12;
-
-//  static lv_font_t *lv_font_16;
-//  static lv_font_t *lv_font_18;
-static lv_font_t *lv_font_20;
-static lv_font_t *lv_font_22;
-static lv_font_t *lv_font_24;
-//  static lv_font_t *lv_font_30;
-static lv_font_t *lv_font_32;
-static lv_font_t *lv_font_36;
-static lv_font_t *lv_font_48;
 
 /* Состояние */
-static float actual_pressure = 7.8f;
-static float set_pressure = 10.0f;
+float actual_pressure = 7.8f;
+float set_pressure = 10.0f;
 static float set_pressure_old = 10.0f;
 
-static bool auto_running = false;
+bool auto_running = false;
 static bool manual_running = false;
 static bool water_present = true;
-static bool auto_screen_active = true;
+bool auto_screen_active = true;
 
 /* Объекты */
 static lv_obj_t *root;
 static lv_obj_t *screen_title;
-static lv_obj_t *clock_label;
+lv_obj_t *clock_label;
 static lv_obj_t *network_label;
 static lv_obj_t *auto_page;
 static lv_obj_t *manual_page;
@@ -72,10 +46,10 @@ static lv_obj_t *set_pressure_bar;
 static lv_obj_t *modal_pressure_label;
 static lv_obj_t *water_label;
 static lv_obj_t *water_icon;
-static lv_obj_t *auto_msg_label;
-static lv_obj_t *manual_msg_label;
-static lv_obj_t *auto_start_btn;
-static lv_obj_t *manual_start_btn;
+lv_obj_t *auto_msg_label;
+lv_obj_t *manual_msg_label;
+lv_obj_t *auto_start_btn;
+lv_obj_t *manual_start_btn;
 static lv_obj_t *setpoint_modal;
 static lv_obj_t *manual_confirm_modal;
 
@@ -97,7 +71,7 @@ static lv_style_t st_big_green;
 static lv_style_t st_big_blue;
 static lv_style_t st_big_orange;
 
-static void set_message(lv_obj_t *label, const char *text)
+void set_message(lv_obj_t *label, const char *text)
 {
     char buf[160];
     snprintf(buf, sizeof(buf), LV_SYMBOL_OK "  %s", text);
@@ -113,7 +87,7 @@ static int pressure_to_percent(float value)
     return (int)((value / HMI_PRESSURE_MAX) * 100.0f + 0.5f);
 }
 
-static void update_pressure_ui(void)
+void update_pressure_ui(void)
 {
     char buf[24];
 
@@ -132,7 +106,7 @@ static void update_pressure_ui(void)
     }
 }
 
-static void update_big_button(lv_obj_t *btn, bool running)
+void update_big_button(lv_obj_t *btn, bool running)
 {
     lv_obj_t *icon = lv_obj_get_child(btn, 0);
     lv_obj_t *text = lv_obj_get_child(btn, 1);
@@ -145,7 +119,7 @@ static void update_big_button(lv_obj_t *btn, bool running)
     lv_obj_add_style(btn, running ? &st_btn_red : &st_btn_green, 0);
 }
 
-static lv_obj_t *label(lv_obj_t *parent, const char *text, const lv_style_t *style)
+lv_obj_t *label(lv_obj_t *parent, const char *text, const lv_style_t *style)
 {
     lv_obj_t *obj = lv_label_create(parent);
     lv_label_set_text(obj, text);
@@ -162,7 +136,7 @@ static lv_obj_t *panel(lv_obj_t *parent)
     return obj;
 }
 
-static lv_obj_t *button(lv_obj_t *parent, const char *text, const lv_style_t *style)
+lv_obj_t *button(lv_obj_t *parent, const char *text, const lv_style_t *style)
 {
     lv_obj_t *btn = lv_btn_create(parent);
     lv_obj_add_style(btn, style, 0);
@@ -306,15 +280,6 @@ static void close_setpoint_event(lv_event_t *e)
     update_pressure_ui();
 }
 
-static void settings_event(lv_event_t *e)
-{
-    LV_UNUSED(e);
-    if (auto_screen_active)
-        set_message(auto_msg_label, "Открытие настроек пока не реализовано");
-    else
-        set_message(manual_msg_label, "Открытие настроек пока не реализовано");
-}
-
 static void pump_slider_event(lv_event_t *e)
 {
     lv_obj_t *slider = lv_event_get_target(e);
@@ -346,53 +311,7 @@ static void pump_step_event(lv_event_t *e)
     lv_label_set_text(pump_value_label[idx], buf);
 }
 
-static void pressure_timer_cb(lv_timer_t *timer)
-{
-    LV_UNUSED(timer);
-    if (auto_running)
-    {
-        actual_pressure += (set_pressure - actual_pressure) * 0.07f;
-    }
-    else
-    {
-        actual_pressure += 0.01f;
-        if (actual_pressure > 8.1f)
-            actual_pressure = 7.7f;
-    }
-
-    if (actual_pressure < 0.0f)
-        actual_pressure = 0.0f;
-    if (actual_pressure > HMI_PRESSURE_MAX)
-        actual_pressure = HMI_PRESSURE_MAX;
-    update_pressure_ui();
-}
-
-static void clock_timer_cb(lv_timer_t *timer)
-{
-    LV_UNUSED(timer);
-    /* На MCU замените на RTC. Здесь простой счётчик-заглушка. */
-    static int minute = 30;
-    static int hour = 12;
-    static int tick = 0;
-    char buf[12];
-
-    tick++;
-    if (tick >= 60)
-    {
-        tick = 0;
-        minute++;
-        if (minute >= 60)
-        {
-            minute = 0;
-            hour = (hour + 1) % 24;
-        }
-    }
-
-    snprintf(buf, sizeof(buf), "%02d:%02d", hour, minute);
-    lv_label_set_text(clock_label, buf);
-}
-
-static void init_styles(void)
+void init_styles(void)
 {
     lv_style_init(&st_root);
     lv_style_set_bg_color(&st_root, C_BG);
@@ -697,7 +616,7 @@ static void create_pump_card(lv_obj_t *parent, int idx, const char *title, int i
     lv_obj_add_event_cb(plus, pump_step_event, LV_EVENT_CLICKED, (void *)(intptr_t)(idx * 10 + 5));
 }
 
-static void create_manual_page(lv_obj_t *parent)
+void create_manual_page(lv_obj_t *parent)
 {
     manual_page = lv_obj_create(parent);
     lv_obj_remove_style_all(manual_page);
@@ -770,7 +689,7 @@ static void create_manual_page(lv_obj_t *parent)
     lv_label_set_text(manual_msg_label, "Ручной режим активирован");
 }
 
-static void create_setpoint_modal(lv_obj_t *parent)
+void create_setpoint_modal(lv_obj_t *parent)
 {
     setpoint_modal = lv_obj_create(parent);
     lv_obj_set_size(setpoint_modal, LV_PCT(100), LV_PCT(100));
@@ -819,7 +738,7 @@ static void create_setpoint_modal(lv_obj_t *parent)
     lv_obj_add_event_cb(cancel, close_setpoint_event, LV_EVENT_CLICKED, NULL);
 }
 
-static void create_manual_confirm_modal(lv_obj_t *parent)
+void create_manual_confirm_modal(lv_obj_t *parent)
 {
     manual_confirm_modal = lv_obj_create(parent);
     lv_obj_set_size(manual_confirm_modal, LV_PCT(100), LV_PCT(100));
@@ -856,101 +775,6 @@ static void create_manual_confirm_modal(lv_obj_t *parent)
     lv_obj_add_event_cb(no, cancel_manual_event, LV_EVENT_CLICKED, NULL);
 }
 
-
-
-// Ваша рабочая функция считывания файла со SPIFFS в PSRAM (оставляем без изменений)
-long font_to_buf(const char *filepath, uint8_t **font_buffer)
-{
-    FILE *f = fopen(filepath, "rb");
-    if (f == NULL) {
-        ESP_LOGE(TAG, "Ошибка: не удалось открыть файл %s", filepath);
-        return 0;
-    }
-
-    fseek(f, 0, SEEK_END);
-    long size = ftell(f);
-    fseek(f, 0, SEEK_SET);
-
-    if (size <= 0) {
-        ESP_LOGE(TAG, "Ошибка: файл %s пустой!", filepath);
-        fclose(f);
-        return 0;
-    }
-
-    // Переносим буфер во внутреннюю быструю память SRAM
-    *font_buffer = (uint8_t *)heap_caps_aligned_alloc(64, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    // *font_buffer = (uint8_t *)heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    if (*font_buffer == NULL) {
-        ESP_LOGE(TAG, "Критическая ошибка: не хватило PSRAM (%ld байт) для шрифта!", size);
-        fclose(f);
-        return 0;
-    }
-
-    fread(*font_buffer, 1, size, f);
-    fclose(f);
-
-
-
-    ESP_LOGI(TAG, "Файл %s успешно считан в PSRAM. Размер: %ld байт.", filepath, size);
-    return size;
-}
-
-
-
-
-lv_font_t * lvgl_font_init(const uint8_t * ttf_data, uint32_t data_size, int32_t font_size)
-{
-    ESP_LOGI("UI", "Создание Tiny TrueType шрифта напрямую из памяти для %d px...", font_size);
-
-    // Вызываем официальный конструктор Tiny TrueType из памяти.
-    // Передаем: указатель на PSRAM, размер массива байт и целевую высоту шрифта.
-    lv_font_t * font = lv_tiny_ttf_create_data(ttf_data, data_size, font_size);
-
-    if (font == NULL) {
-        ESP_LOGE("UI", "КРИТИЧЕСКАЯ ОШИБКА: Tiny TrueType не смог обработать массив шрифта %d px!", font_size);
-        return NULL;
-    }
-
-    ESP_LOGI("UI", "УСПЕХ: Векторный шрифт Tiny TTF %d px успешно создан!", font_size);
-
-    // Настройка фолбеков Montserrat
-    switch (font_size) {
-        case 14:
-        case 16: font->fallback = &lv_font_montserrat_16; break;
-        case 18: font->fallback = &lv_font_montserrat_18; break;
-        case 20:
-        case 22:
-        case 24: font->fallback = &lv_font_montserrat_24; break;
-        case 30:
-        case 32: font->fallback = &lv_font_montserrat_32; break;
-        case 36: font->fallback = &lv_font_montserrat_36; break;
-        case 48: font->fallback = &lv_font_montserrat_48; break;
-        default: font->fallback = &lv_font_montserrat_16; break;
-    }
-
-    return font;
-}
-
-void init_fonts(uint8_t *font_buf, long buffer_size)
-{
- 
-
-    // long buffer_size = font_to_buf("/spiffs/font.ttf", &font_buf);
-
-    if (buffer_size <= 0 || font_buf == NULL) {
-        ESP_LOGE(TAG, "Не удалось продолжить: буфер шрифта пуст.");
-        return;
-    }
-
-    ESP_LOGI(TAG, "Мгновенное создание шрифтов из выделенной PSRAM...");
-    
-    lv_font_20 = lvgl_font_init(font_buf, buffer_size, 20);
-    lv_font_22 = lvgl_font_init(font_buf, buffer_size, 22);
-    lv_font_24 = lvgl_font_init(font_buf, buffer_size, 24);
-    lv_font_32 = lvgl_font_init(font_buf, buffer_size, 32);
-    lv_font_36 = lvgl_font_init(font_buf, buffer_size, 36);
-    lv_font_48 = lvgl_font_init(font_buf, buffer_size, 48);
-}
 
 void hmi_create(uint8_t *font_buf, long buffer_size)
 {
@@ -1010,7 +834,7 @@ void hmi_create(uint8_t *font_buf, long buffer_size)
     lv_obj_t *settings = button(top, LV_SYMBOL_SETTINGS " Настройки", &st_btn_dark);
     lv_obj_set_size(settings, 220, 46);
     lv_obj_set_grid_cell(settings, LV_GRID_ALIGN_END, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
-    lv_obj_add_event_cb(settings, settings_event, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(settings, hmi_events.settings_event, LV_EVENT_CLICKED, NULL);
 
     // Основной контейнер контента
     lv_obj_t *content = lv_obj_create(root);
