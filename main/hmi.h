@@ -61,6 +61,22 @@ typedef struct {
     lv_style_t st_big_blue;
     lv_style_t st_big_orange;
     void (*init)(void);
+
+#define ST_ROOT            (&hmi_styles.st_root)
+#define ST_TOPBAR          (&hmi_styles.st_topbar)
+#define ST_PANEL           (&hmi_styles.st_panel)
+#define ST_PANEL_CLICK     (&hmi_styles.st_panel_clickable)
+#define ST_BTN_DARK        (&hmi_styles.st_btn_dark)
+#define ST_BTN_GREEN       (&hmi_styles.st_btn_green)
+#define ST_BTN_RED         (&hmi_styles.st_btn_red)
+#define ST_BTN_BLUE        (&hmi_styles.st_btn_blue)
+#define ST_BTN_GRAY        (&hmi_styles.st_btn_gray)
+#define ST_TEXT            (&hmi_styles.st_text)
+#define ST_MUTED           (&hmi_styles.st_muted)
+#define ST_BIG_GREEN       (&hmi_styles.st_big_green)
+#define ST_BIG_BLUE        (&hmi_styles.st_big_blue)
+#define ST_BIG_ORANGE      (&hmi_styles.st_big_orange)
+ 
 } hmi_styles_t;
 
 extern hmi_styles_t hmi_styles;
