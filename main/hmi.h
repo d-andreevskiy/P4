@@ -45,6 +45,26 @@ extern lv_obj_t *manual_msg_label;
 extern lv_obj_t *auto_start_btn;
 extern lv_obj_t *manual_start_btn;
 
+typedef struct {
+    lv_style_t st_root;
+    lv_style_t st_topbar;
+    lv_style_t st_panel;
+    lv_style_t st_panel_clickable;
+    lv_style_t st_btn_dark;
+    lv_style_t st_btn_green;
+    lv_style_t st_btn_red;
+    lv_style_t st_btn_blue;
+    lv_style_t st_btn_gray;
+    lv_style_t st_text;
+    lv_style_t st_muted;
+    lv_style_t st_big_green;
+    lv_style_t st_big_blue;
+    lv_style_t st_big_orange;
+    void (*init)(void);
+} hmi_styles_t;
+
+extern hmi_styles_t hmi_styles;
+
 // Структура-"интерфейс" для вызова static функций
 typedef struct {
     void (*settings_event)(lv_event_t *e);
@@ -57,7 +77,7 @@ extern const hmi_events_t hmi_events;
 
 // Внешние функции отрисовки
 extern void init_fonts(uint8_t *font_buf, long buffer_size);
-extern void init_styles(void);
+// extern void init_styles(void);
 // extern void create_auto_page(lv_obj_t *parent);
 extern void create_manual_page(lv_obj_t *parent);
 extern void create_setpoint_modal(lv_obj_t *parent);

@@ -56,21 +56,6 @@ static lv_obj_t *manual_confirm_modal;
 static lv_obj_t *pump_slider[3];
 static lv_obj_t *pump_value_label[3];
 
-static lv_style_t st_root;
-static lv_style_t st_topbar;
-static lv_style_t st_panel;
-static lv_style_t st_panel_clickable;
-static lv_style_t st_btn_dark;
-static lv_style_t st_btn_green;
-static lv_style_t st_btn_red;
-static lv_style_t st_btn_blue;
-static lv_style_t st_btn_gray;
-static lv_style_t st_text;
-static lv_style_t st_muted;
-static lv_style_t st_big_green;
-static lv_style_t st_big_blue;
-static lv_style_t st_big_orange;
-
 void set_message(lv_obj_t *label, const char *text)
 {
     char buf[160];
@@ -114,9 +99,9 @@ void update_big_button(lv_obj_t *btn, bool running)
     lv_label_set_text(icon, running ? LV_SYMBOL_STOP : LV_SYMBOL_PLAY);
     lv_label_set_text(text, running ? "СТОП" : "СТАРТ");
 
-    lv_obj_remove_style(btn, &st_btn_green, 0);
-    lv_obj_remove_style(btn, &st_btn_red, 0);
-    lv_obj_add_style(btn, running ? &st_btn_red : &st_btn_green, 0);
+    lv_obj_remove_style(btn, &hmi_styles.st_btn_green, 0);
+    lv_obj_remove_style(btn, &hmi_styles.st_btn_red, 0);
+    lv_obj_add_style(btn, running ? &hmi_styles.st_btn_red : &hmi_styles.st_btn_green, 0);
 }
 
 lv_obj_t *label(lv_obj_t *parent, const char *text, const lv_style_t *style)
@@ -131,7 +116,7 @@ lv_obj_t *label(lv_obj_t *parent, const char *text, const lv_style_t *style)
 static lv_obj_t *panel(lv_obj_t *parent)
 {
     lv_obj_t *obj = lv_obj_create(parent);
-    lv_obj_add_style(obj, &st_panel, 0);
+    lv_obj_add_style(obj, &hmi_styles.st_panel, 0);
     lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     return obj;
 }
@@ -142,7 +127,7 @@ lv_obj_t *button(lv_obj_t *parent, const char *text, const lv_style_t *style)
     lv_obj_add_style(btn, style, 0);
     lv_obj_clear_flag(btn, LV_OBJ_FLAG_SCROLLABLE);
 
-    lv_obj_t *txt = label(btn, text, &st_text);
+    lv_obj_t *txt = label(btn, text, &hmi_styles.st_text);
     lv_obj_center(txt);
     return btn;
 }
@@ -150,15 +135,15 @@ lv_obj_t *button(lv_obj_t *parent, const char *text, const lv_style_t *style)
 static lv_obj_t *big_start_button(lv_obj_t *parent)
 {
     lv_obj_t *btn = lv_btn_create(parent);
-    lv_obj_add_style(btn, &st_btn_green, 0);
+    lv_obj_add_style(btn, &hmi_styles.st_btn_green, 0);
     lv_obj_set_flex_flow(btn, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(btn, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_gap(btn, 16, 0);
 
-    lv_obj_t *icon = label(btn, LV_SYMBOL_PLAY, &st_text);
+    lv_obj_t *icon = label(btn, LV_SYMBOL_PLAY, &hmi_styles.st_text);
     lv_obj_set_style_text_font(icon, lv_font_36, 0);
 
-    lv_obj_t *txt = label(btn, "СТАРТ", &st_text);
+    lv_obj_t *txt = label(btn, "СТАРТ", &hmi_styles.st_text);
     lv_obj_set_style_text_font(txt, lv_font_36, 0);
 
     return btn;
@@ -311,85 +296,6 @@ static void pump_step_event(lv_event_t *e)
     lv_label_set_text(pump_value_label[idx], buf);
 }
 
-void init_styles(void)
-{
-    lv_style_init(&st_root);
-    lv_style_set_bg_color(&st_root, C_BG);
-    lv_style_set_bg_opa(&st_root, LV_OPA_COVER);
-    lv_style_set_text_color(&st_root, C_TEXT);
-
-    lv_style_init(&st_topbar);
-    lv_style_set_bg_color(&st_topbar, C_TOP);
-    lv_style_set_bg_opa(&st_topbar, LV_OPA_COVER);
-    lv_style_set_border_width(&st_topbar, 2);
-    lv_style_set_border_color(&st_topbar, lv_color_hex(0x1F2B36));
-    lv_style_set_pad_all(&st_topbar, 16);
-
-    lv_style_init(&st_panel);
-    lv_style_set_bg_color(&st_panel, C_PANEL);
-    lv_style_set_bg_opa(&st_panel, LV_OPA_COVER);
-    lv_style_set_border_width(&st_panel, 1);
-    lv_style_set_border_color(&st_panel, C_BORDER);
-    lv_style_set_radius(&st_panel, 10);
-    lv_style_set_pad_all(&st_panel, 18);
-    lv_style_set_shadow_width(&st_panel, 18);
-    lv_style_set_shadow_opa(&st_panel, LV_OPA_40);
-
-    lv_style_init(&st_panel_clickable);
-    lv_style_set_border_color(&st_panel_clickable, C_BLUE);
-
-    lv_style_init(&st_text);
-    lv_style_set_text_color(&st_text, C_TEXT);
-    lv_style_set_text_font(&st_text, lv_font_20);
-
-    lv_style_init(&st_muted);
-    lv_style_set_text_color(&st_muted, C_MUTED);
-    lv_style_set_text_font(&st_muted, lv_font_22);
-
-    lv_style_init(&st_big_green);
-    lv_style_set_text_color(&st_big_green, C_GREEN);
-    lv_style_set_text_font(&st_big_green, lv_font_48);
-
-    lv_style_init(&st_big_blue);
-    lv_style_set_text_color(&st_big_blue, C_BLUE);
-    lv_style_set_text_font(&st_big_blue, lv_font_48);
-
-    lv_style_init(&st_big_orange);
-    lv_style_set_text_color(&st_big_orange, C_ORANGE);
-    lv_style_set_text_font(&st_big_orange, lv_font_48);
-
-    lv_style_init(&st_btn_dark);
-    lv_style_set_bg_color(&st_btn_dark, C_PANEL_2);
-    lv_style_set_bg_opa(&st_btn_dark, LV_OPA_COVER);
-    lv_style_set_border_width(&st_btn_dark, 1);
-    lv_style_set_border_color(&st_btn_dark, C_BORDER_LT);
-    lv_style_set_radius(&st_btn_dark, 8);
-    lv_style_set_pad_all(&st_btn_dark, 12);
-
-    lv_style_init(&st_btn_green);
-    lv_style_set_bg_color(&st_btn_green, lv_color_hex(0x1F9A3A));
-    lv_style_set_bg_grad_color(&st_btn_green, lv_color_hex(0x39C95A));
-    lv_style_set_bg_grad_dir(&st_btn_green, LV_GRAD_DIR_VER);
-    lv_style_set_radius(&st_btn_green, 10);
-
-    lv_style_init(&st_btn_red);
-    lv_style_set_bg_color(&st_btn_red, lv_color_hex(0xB91515));
-    lv_style_set_bg_grad_color(&st_btn_red, lv_color_hex(0xF33434));
-    lv_style_set_bg_grad_dir(&st_btn_red, LV_GRAD_DIR_VER);
-    lv_style_set_radius(&st_btn_red, 10);
-
-    lv_style_init(&st_btn_blue);
-    lv_style_set_bg_color(&st_btn_blue, lv_color_hex(0x1662C8));
-    lv_style_set_bg_grad_color(&st_btn_blue, lv_color_hex(0x339CFF));
-    lv_style_set_bg_grad_dir(&st_btn_blue, LV_GRAD_DIR_VER);
-    lv_style_set_radius(&st_btn_blue, 8);
-
-    lv_style_init(&st_btn_gray);
-    lv_style_set_bg_color(&st_btn_gray, lv_color_hex(0x1C2732));
-    lv_style_set_bg_grad_color(&st_btn_gray, lv_color_hex(0x334250));
-    lv_style_set_bg_grad_dir(&st_btn_gray, LV_GRAD_DIR_VER);
-}
-
 // 1. Меняем void на lv_obj_t*
 static lv_obj_t *create_pressure_card(lv_obj_t *parent, const char *title, bool is_setpoint)
 {
@@ -406,14 +312,14 @@ static lv_obj_t *create_pressure_card(lv_obj_t *parent, const char *title, bool 
         lv_obj_add_flag(p, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_add_event_cb(p, open_setpoint_event, LV_EVENT_CLICKED, NULL);
         // Добавляем стиль кликабельной панели, который вы инициализировали в init_styles
-        lv_obj_add_style(p, &st_panel_clickable, 0);
+        lv_obj_add_style(p, &hmi_styles.st_panel_clickable, 0);
     }
     else
     {
         lv_obj_clear_flag(p, LV_OBJ_FLAG_CLICKABLE);
     }
 
-    lv_obj_t *t = label(p, title, &st_text);
+    lv_obj_t *t = label(p, title, &hmi_styles.st_text);
     lv_obj_set_style_text_font(t, lv_font_20, 0);
 
     lv_obj_t *row = lv_obj_create(p);
@@ -423,14 +329,14 @@ static lv_obj_t *create_pressure_card(lv_obj_t *parent, const char *title, bool 
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_gap(row, 1, 0);
 
-    lv_obj_t *num = label(row, is_setpoint ? "10.0" : "7.8", is_setpoint ? &st_big_blue : &st_big_green);
-    lv_obj_t *unit = label(row, "бар", &st_muted);
+    lv_obj_t *num = label(row, is_setpoint ? "10.0" : "7.8", is_setpoint ? &hmi_styles.st_big_blue : &hmi_styles.st_big_green);
+    lv_obj_t *unit = label(row, "бар", &hmi_styles.st_muted);
     LV_UNUSED(unit);
 
     if (is_setpoint)
     {
         set_pressure_label = num;
-        label(p, "Нажмите для изменения", &st_muted);
+        label(p, "Нажмите для изменения", &hmi_styles.st_muted);
     }
     else
     {
@@ -470,8 +376,8 @@ static lv_obj_t *create_pressure_card(lv_obj_t *parent, const char *title, bool 
     lv_obj_set_flex_align(scale, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     // 5. Создаем сами текстовые метки (больше никакого lv_obj_align не требуется)
-    lv_obj_t *s0 = label(scale, "0", &st_text);
-    lv_obj_t *s16 = label(scale, "16", &st_text);
+    lv_obj_t *s0 = label(scale, "0", &hmi_styles.st_text);
+    lv_obj_t *s16 = label(scale, "16", &hmi_styles.st_text);
     LV_UNUSED(s0);
     LV_UNUSED(s16);
 
@@ -520,12 +426,12 @@ static void create_auto_page(lv_obj_t *parent)
     lv_obj_set_grid_cell(water, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
     lv_obj_set_flex_flow(water, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(water, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    label(water, "ВОДА В СИСТЕМЕ", &st_text);
+    label(water, "ВОДА В СИСТЕМЕ", &hmi_styles.st_text);
 
-    water_icon = label(water, LV_SYMBOL_OK " ", &st_big_green);
+    water_icon = label(water, LV_SYMBOL_OK " ", &hmi_styles.st_big_green);
     lv_obj_set_style_text_font(water_icon, lv_font_48, 0);
 
-    water_label = label(water, water_present ? "ЕСТЬ" : "НЕТ", &st_big_green);
+    water_label = label(water, water_present ? "ЕСТЬ" : "НЕТ", &hmi_styles.st_big_green);
     lv_obj_set_style_text_font(water_label, lv_font_24, 0);
 
     // Карточка заданного давления
@@ -543,7 +449,7 @@ static void create_auto_page(lv_obj_t *parent)
     lv_obj_set_style_pad_gap(side, 20, 0);
 
     // Кнопка перехода в ручной режим
-    lv_obj_t *to_manual = button(side, LV_SYMBOL_NEW_LINE " РУЧНОЙ РЕЖИМ", &st_btn_dark);
+    lv_obj_t *to_manual = button(side, LV_SYMBOL_NEW_LINE " РУЧНОЙ РЕЖИМ", &hmi_styles.st_btn_dark);
     lv_obj_set_grid_cell(to_manual, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
     lv_obj_add_event_cb(to_manual, to_manual_event, LV_EVENT_CLICKED, NULL);
 
@@ -553,9 +459,9 @@ static void create_auto_page(lv_obj_t *parent)
     lv_obj_set_flex_flow(mode, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(mode, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    lv_obj_t *mode_name = label(mode, "АВТО", &st_big_green);
+    lv_obj_t *mode_name = label(mode, "АВТО", &hmi_styles.st_big_green);
     lv_obj_set_style_text_font(mode_name, lv_font_32, 0);
-    label(mode, "Режим работы", &st_muted);
+    label(mode, "Режим работы", &hmi_styles.st_muted);
 
     // Большая кнопка СТАРТ / СТОП
     auto_start_btn = big_start_button(side);
@@ -567,9 +473,9 @@ static void create_auto_page(lv_obj_t *parent)
     lv_obj_t *msg = panel(auto_page);
     lv_obj_set_grid_cell(msg, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
     lv_obj_set_flex_flow(msg, LV_FLEX_FLOW_COLUMN);
-    label(msg, "СООБЩЕНИЯ", &st_text);
+    label(msg, "СООБЩЕНИЯ", &hmi_styles.st_text);
 
-    auto_msg_label = label(msg, "", &st_text);
+    auto_msg_label = label(msg, "", &hmi_styles.st_text);
     set_message(auto_msg_label, "Система в норме");
 
     // return auto_page;
@@ -581,17 +487,17 @@ static void create_pump_card(lv_obj_t *parent, int idx, const char *title, int i
     lv_obj_set_flex_flow(p, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(p, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    lv_obj_t *head = label(p, title, &st_text);
+    lv_obj_t *head = label(p, title, &hmi_styles.st_text);
     lv_obj_set_style_text_font(head, lv_font_22, 0);
 
-    lv_obj_t *val = label(p, "", idx == 0 ? &st_big_green : (idx == 1 ? &st_big_blue : &st_big_orange));
+    lv_obj_t *val = label(p, "", idx == 0 ? &hmi_styles.st_big_green : (idx == 1 ? &hmi_styles.st_big_blue : &hmi_styles.st_big_orange));
     pump_value_label[idx] = val;
 
     char buf[12];
     snprintf(buf, sizeof(buf), "%d%%", init_value);
     lv_label_set_text(val, buf);
 
-    label(p, "Скорость", &st_muted);
+    label(p, "Скорость", &hmi_styles.st_muted);
 
     pump_slider[idx] = lv_slider_create(p);
     lv_obj_set_size(pump_slider[idx], LV_PCT(92), 26);
@@ -607,11 +513,11 @@ static void create_pump_card(lv_obj_t *parent, int idx, const char *title, int i
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    lv_obj_t *minus = button(row, "−", &st_btn_dark);
+    lv_obj_t *minus = button(row, "-", &hmi_styles.st_btn_dark);
     lv_obj_set_size(minus, 70, 60);
     lv_obj_add_event_cb(minus, pump_step_event, LV_EVENT_CLICKED, (void *)(intptr_t)(idx * 10 + 9));
 
-    lv_obj_t *plus = button(row, "+", &st_btn_dark);
+    lv_obj_t *plus = button(row, "+", &hmi_styles.st_btn_dark);
     lv_obj_set_size(plus, 70, 60);
     lv_obj_add_event_cb(plus, pump_step_event, LV_EVENT_CLICKED, (void *)(intptr_t)(idx * 10 + 5));
 }
@@ -660,7 +566,7 @@ void create_manual_page(lv_obj_t *parent)
 
     lv_obj_set_style_pad_gap(side, 20, 0); // Вернули обратно
 
-    lv_obj_t *to_auto = button(side, "АВТО РЕЖИМ", &st_btn_dark);
+    lv_obj_t *to_auto = button(side, "АВТО РЕЖИМ", &hmi_styles.st_btn_dark);
     lv_obj_set_grid_cell(to_auto, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
     lv_obj_add_event_cb(to_auto, open_auto_event, LV_EVENT_CLICKED, NULL);
 
@@ -669,9 +575,9 @@ void create_manual_page(lv_obj_t *parent)
     lv_obj_set_flex_flow(mode, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(mode, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    lv_obj_t *mode_name = label(mode, "РУЧНОЙ", &st_big_green);
+    lv_obj_t *mode_name = label(mode, "РУЧНОЙ", &hmi_styles.st_big_green);
     lv_obj_set_style_text_font(mode_name, lv_font_32, 0);
-    label(mode, "Режим работы", &st_muted);
+    label(mode, "Режим работы", &hmi_styles.st_muted);
 
     manual_start_btn = big_start_button(side);
     lv_obj_set_grid_cell(manual_start_btn, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 2, 1);
@@ -682,8 +588,8 @@ void create_manual_page(lv_obj_t *parent)
     lv_obj_set_grid_cell(msg_panel, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
     lv_obj_set_flex_flow(msg_panel, LV_FLEX_FLOW_COLUMN);
 
-    label(msg_panel, "СООБЩЕНИЯ", &st_text);
-    manual_msg_label = label(msg_panel, "", &st_text);
+    label(msg_panel, "СООБЩЕНИЯ", &hmi_styles.st_text);
+    manual_msg_label = label(msg_panel, "", &hmi_styles.st_text);
 
     // Безопасная прямая установка текста
     lv_label_set_text(manual_msg_label, "Ручной режим активирован");
@@ -705,9 +611,9 @@ void create_setpoint_modal(lv_obj_t *parent)
     lv_obj_set_flex_align(box, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_gap(box, 14, 0);
 
-    label(box, "УСТАНОВКА ДАВЛЕНИЯ", &st_text);
-    modal_pressure_label = label(box, "10.0 бар", &st_big_blue);
-    label(box, "Диапазон: 0-16 бар", &st_muted);
+    label(box, "УСТАНОВКА ДАВЛЕНИЯ", &hmi_styles.st_text);
+    modal_pressure_label = label(box, "10.0 бар", &hmi_styles.st_big_blue);
+    label(box, "Диапазон: 0-16 бар", &hmi_styles.st_muted);
 
     lv_obj_t *step = lv_obj_create(box);
     lv_obj_remove_style_all(step);
@@ -715,11 +621,11 @@ void create_setpoint_modal(lv_obj_t *parent)
     lv_obj_set_flex_flow(step, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(step, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    lv_obj_t *minus = button(step, "-", &st_btn_gray);
+    lv_obj_t *minus = button(step, "-", &hmi_styles.st_btn_gray);
     lv_obj_set_size(minus, 170, 62);
     lv_obj_add_event_cb(minus, pressure_minus_event, LV_EVENT_CLICKED, NULL);
 
-    lv_obj_t *plus = button(step, "+", &st_btn_blue);
+    lv_obj_t *plus = button(step, "+", &hmi_styles.st_btn_blue);
     lv_obj_set_size(plus, 170, 62);
     lv_obj_add_event_cb(plus, pressure_plus_event, LV_EVENT_CLICKED, NULL);
 
@@ -729,11 +635,11 @@ void create_setpoint_modal(lv_obj_t *parent)
     lv_obj_set_flex_flow(actions, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(actions, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    lv_obj_t *ok = button(actions, "ОК", &st_btn_green);
+    lv_obj_t *ok = button(actions, "ОК", &hmi_styles.st_btn_green);
     lv_obj_set_size(ok, 170, 62);
     lv_obj_add_event_cb(ok, save_setpoint_event, LV_EVENT_CLICKED, NULL);
 
-    lv_obj_t *cancel = button(actions, "ОТМЕНА", &st_btn_red);
+    lv_obj_t *cancel = button(actions, "ОТМЕНА", &hmi_styles.st_btn_red);
     lv_obj_set_size(cancel, 170, 62);
     lv_obj_add_event_cb(cancel, close_setpoint_event, LV_EVENT_CLICKED, NULL);
 }
@@ -754,8 +660,8 @@ void create_manual_confirm_modal(lv_obj_t *parent)
     lv_obj_set_flex_align(box, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_gap(box, 18, 0);
 
-    label(box, "ПЕРЕХОД В РУЧНОЙ РЕЖИМ", &st_text);
-    lv_obj_t *msg = label(box, "Продолжить?", &st_muted);
+    label(box, "ПЕРЕХОД В РУЧНОЙ РЕЖИМ", &hmi_styles.st_text);
+    lv_obj_t *msg = label(box, "Продолжить?", &hmi_styles.st_muted);
     lv_label_set_long_mode(msg, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(msg, LV_PCT(90));
     lv_obj_set_style_text_align(msg, LV_TEXT_ALIGN_CENTER, 0);
@@ -766,11 +672,11 @@ void create_manual_confirm_modal(lv_obj_t *parent)
     lv_obj_set_flex_flow(actions, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(actions, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    lv_obj_t *yes = button(actions, "ДА", &st_btn_green);
+    lv_obj_t *yes = button(actions, "ДА", &hmi_styles.st_btn_green);
     lv_obj_set_size(yes, 180, 62);
     lv_obj_add_event_cb(yes, confirm_manual_event, LV_EVENT_CLICKED, NULL);
 
-    lv_obj_t *no = button(actions, "НЕТ", &st_btn_red);
+    lv_obj_t *no = button(actions, "НЕТ", &hmi_styles.st_btn_red);
     lv_obj_set_size(no, 180, 62);
     lv_obj_add_event_cb(no, cancel_manual_event, LV_EVENT_CLICKED, NULL);
 }
@@ -781,7 +687,7 @@ void hmi_create(uint8_t *font_buf, long buffer_size)
     // 1. Инициализируем стили с защитой от повторного вызова
 
     init_fonts(font_buf, buffer_size);
-    init_styles();
+    hmi_styles.init();
 
     // 2. Сетки ДОЛЖНЫ быть static, так как LVGL хранит только указатель на них
     static lv_coord_t root_col_dsc[] = {LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
@@ -801,13 +707,13 @@ void hmi_create(uint8_t *font_buf, long buffer_size)
     root = lv_obj_create(lv_scr_act());
     lv_obj_remove_style_all(root);
     lv_obj_add_style(root, &screen_font_style, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_add_style(root, &st_root, 0);
+    lv_obj_add_style(root, &hmi_styles.st_root, 0);
     lv_obj_set_size(root, LV_PCT(100), LV_PCT(100));
     lv_obj_set_grid_dsc_array(root, root_col_dsc, root_row_dsc);
 
     // Верхняя панель (Топбар)
     lv_obj_t *top = lv_obj_create(root);
-    lv_obj_add_style(top, &st_topbar, 0);
+    lv_obj_add_style(top, &hmi_styles.st_topbar, 0);
     lv_obj_set_grid_cell(top, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
     lv_obj_clear_flag(top, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -821,17 +727,17 @@ void hmi_create(uint8_t *font_buf, long buffer_size)
     lv_obj_set_flex_align(left, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_gap(left, 20, 0);
 
-    clock_label = label(left, "12:30", &st_text);
-    network_label = label(left, LV_SYMBOL_WIFI " Сеть: ● Подключено", &st_text);
+    clock_label = label(left, "12:30", &hmi_styles.st_text);
+    network_label = label(left, LV_SYMBOL_WIFI " Сеть: ● Подключено", &hmi_styles.st_text);
     lv_obj_set_style_text_color(network_label, C_GREEN, 0);
 
     // Заголовок экрана (Центр)
-    screen_title = label(top, "АВТО РЕЖИМ", &st_text);
+    screen_title = label(top, "АВТО РЕЖИМ", &hmi_styles.st_text);
     lv_obj_set_style_text_font(screen_title, lv_font_32, 0);
     lv_obj_set_grid_cell(screen_title, LV_GRID_ALIGN_CENTER, 1, 1, LV_GRID_ALIGN_CENTER, 0, 1);
 
     // Кнопка настроек (Справа)
-    lv_obj_t *settings = button(top, LV_SYMBOL_SETTINGS " Настройки", &st_btn_dark);
+    lv_obj_t *settings = button(top, LV_SYMBOL_SETTINGS " Настройки", &hmi_styles.st_btn_dark);
     lv_obj_set_size(settings, 220, 46);
     lv_obj_set_grid_cell(settings, LV_GRID_ALIGN_END, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
     lv_obj_add_event_cb(settings, hmi_events.settings_event, LV_EVENT_CLICKED, NULL);
