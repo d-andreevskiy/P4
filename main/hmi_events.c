@@ -7,7 +7,7 @@ static void settings_event(lv_event_t *e)
     if (auto_screen_active)
         set_message(auto_msg_label, "Открытие настроек пока не реализовано");
     else
-        set_message(manual_msg_label, "Открытие настроек пока не реализовано");
+        hmi_manual_page.set_message( "Открытие настроек пока не реализовано");
 }
 
 static void pressure_timer_cb(lv_timer_t *timer)

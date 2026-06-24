@@ -27,6 +27,8 @@
 
 // Переменные из hmi.c
 
+extern bool manual_running;
+
 extern lv_font_t *lv_font_20;
 extern lv_font_t *lv_font_22;
 extern lv_font_t *lv_font_24;
@@ -41,9 +43,9 @@ extern float actual_pressure;
 extern float set_pressure;
 extern lv_obj_t *clock_label;
 extern lv_obj_t *auto_msg_label;
-extern lv_obj_t *manual_msg_label;
+// extern lv_obj_t *manual_msg_label;
 extern lv_obj_t *auto_start_btn;
-extern lv_obj_t *manual_start_btn;
+// extern lv_obj_t *manual_start_btn;
 
 typedef struct {
     lv_style_t st_root;
@@ -95,6 +97,7 @@ extern const hmi_events_t hmi_events;
 extern void init_fonts(uint8_t *font_buf, long buffer_size);
 // extern void init_styles(void);
 // extern void create_auto_page(lv_obj_t *parent);
+
 extern void create_manual_page(lv_obj_t *parent);
 extern void create_setpoint_modal(lv_obj_t *parent);
 extern void create_manual_confirm_modal(lv_obj_t *parent);
@@ -103,7 +106,32 @@ extern void update_big_button(lv_obj_t *btn, bool state);
 extern void set_message(lv_obj_t *label_obj, const char *text);
 extern lv_obj_t * label(lv_obj_t * parent, const char * text, const lv_style_t * style);
 extern lv_obj_t * button(lv_obj_t * parent, const char * text, const lv_style_t * style);
+extern lv_obj_t *panel(lv_obj_t *parent);
+extern void open_auto_event(lv_event_t *e);
+
+extern bool manual_running;
+
+// extern lv_obj_t *manual_msg_label;
+
+
+struct hmi_manual_page_api {
+    void (*create)(lv_obj_t *parent);
+    void (*update_status)(bool running);
+    void (*update_pump)(int idx, int value);
+    // Новые методы управления видимостью:
+    void (*show)(void);
+    void (*hide)(void);
+    void (*set_message)( const char *text); 
+};
+extern struct hmi_manual_page_api hmi_manual_page;
+
+// extern void register_manual_page_api(void);
 
 void hmi_create(uint8_t *font_buf, long buffer_size);
+extern lv_obj_t *big_start_button(lv_obj_t *parent);
+
+// Маркеры присутствия модулей для предотвращения оптимизации линкера
+extern int hmi_auto_page_anchor;
+extern int hmi_manual_page_anchor;
 
 #endif // HMI_H
