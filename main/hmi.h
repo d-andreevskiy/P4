@@ -47,6 +47,8 @@ extern lv_obj_t *auto_msg_label;
 extern lv_obj_t *auto_start_btn;
 // extern lv_obj_t *manual_start_btn;
 
+extern lv_obj_t *screen_title;
+
 typedef struct {
     lv_style_t st_root;
     lv_style_t st_topbar;
@@ -84,14 +86,43 @@ typedef struct {
 extern hmi_styles_t hmi_styles;
 
 // Структура-"интерфейс" для вызова static функций
-typedef struct {
+// --- API СИСТЕМНЫХ СОБЫТИЙ И ТАЙМЕРОВ ---
+struct hmi_events_t {
     void (*settings_event)(lv_event_t *e);
     void (*pressure_timer_cb)(lv_timer_t *timer);
     void (*clock_timer_cb)(lv_timer_t *timer);
-} hmi_events_t;
+    void (*open_setpoint_event)(lv_event_t *e);
+    void (*close_setpoint_event)(lv_event_t *e);
+    void (*save_setpoint_event)(lv_event_t *e);
+    void (*pressure_minus_event)(lv_event_t *e);
+    void (*pressure_plus_event)(lv_event_t *e);
+    void (*to_manual_event)(lv_event_t *e);
+    void (*auto_start_event)(lv_event_t *e);
+    void (*confirm_manual_event)(lv_event_t *e);
+    void (*cancel_manual_event)(lv_event_t *e);
+    void (*hmi_events)(lv_event_t *e);
+    void (*open_auto_event)(lv_event_t *e);
+};
 
-// Глобальный доступ к структуре событий
-extern const hmi_events_t hmi_events;
+// Экспортируем объект (без const, чтобы отработал конструктор авторегистрации)
+extern struct hmi_events_t hmi_events;
+
+struct hmi_setpoint_modal_api {
+    void (*create)(lv_obj_t *parent);
+    void (*show)(void);
+    void (*hide)(void);
+    void (*set_value)(float value); // Новая функция-обертка
+};
+
+extern struct hmi_setpoint_modal_api hmi_setpoint_modal_api;
+
+// 1. Описываем API для окна подтверждения ручного режима
+struct hmi_confirm_modal_api_t {
+    void (*create)(lv_obj_t *parent);
+    void (*show)(void);
+    void (*hide)(void);
+};
+extern struct hmi_confirm_modal_api_t hmi_confirm_modal_api;
 
 // Внешние функции отрисовки
 extern void init_fonts(uint8_t *font_buf, long buffer_size);
@@ -99,20 +130,28 @@ extern void init_fonts(uint8_t *font_buf, long buffer_size);
 // extern void create_auto_page(lv_obj_t *parent);
 
 extern void create_manual_page(lv_obj_t *parent);
-extern void create_setpoint_modal(lv_obj_t *parent);
-extern void create_manual_confirm_modal(lv_obj_t *parent);
+// extern void create_setpoint_modal(lv_obj_t *parent);
+// extern void create_manual_confirm_modal(lv_obj_t *parent);
 extern void update_pressure_ui(void);
 extern void update_big_button(lv_obj_t *btn, bool state);
 extern void set_message(lv_obj_t *label_obj, const char *text);
 extern lv_obj_t * label(lv_obj_t * parent, const char * text, const lv_style_t * style);
 extern lv_obj_t * button(lv_obj_t * parent, const char * text, const lv_style_t * style);
 extern lv_obj_t *panel(lv_obj_t *parent);
-extern void open_auto_event(lv_event_t *e);
+// extern void open_auto_event(lv_event_t *e);
 
 extern bool manual_running;
 
 // extern lv_obj_t *manual_msg_label;
 
+// --- API АВТОМАТИЧЕСКОГО РЕЖИМА ---
+struct hmi_auto_page_api {
+    void (*create)(lv_obj_t *parent);
+    void (*update)(void);
+    void (*show)(void);
+    void (*hide)(void);
+};
+extern struct hmi_auto_page_api hmi_auto_page;
 
 struct hmi_manual_page_api {
     void (*create)(lv_obj_t *parent);
@@ -124,6 +163,16 @@ struct hmi_manual_page_api {
     void (*set_message)( const char *text); 
 };
 extern struct hmi_manual_page_api hmi_manual_page;
+
+
+// --- КЛАСС АВТОМАТИЧЕСКОГО РЕЖИМА ---
+typedef struct {
+    void (*create)(lv_obj_t *parent); // Верстка панели автоматики
+    void (*update)(void);             // Обновление давления и датчиков на ходу
+} hmi_auto_t;
+
+extern const hmi_auto_t hmi_auto;
+
 
 // extern void register_manual_page_api(void);
 

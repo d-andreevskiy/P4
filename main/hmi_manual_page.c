@@ -149,7 +149,7 @@ void create_manual_page(lv_obj_t *parent)
 
     lv_obj_t *to_auto = button(side, "АВТО РЕЖИМ", ST_BTN_DARK);
     lv_obj_set_grid_cell(to_auto, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
-    lv_obj_add_event_cb(to_auto, open_auto_event, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(to_auto, hmi_events.open_auto_event, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t *mode = panel(side);
     lv_obj_set_grid_cell(mode, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
