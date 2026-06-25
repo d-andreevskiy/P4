@@ -6,7 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define HMI_PRESSURE_MAX 10.0f
+#define HMI_PRESSURE_MAX 16.0f
 
 /* Цвета исходного интерфейса */
 #define C_BG lv_color_hex(0x0B1118)

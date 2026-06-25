@@ -20,7 +20,6 @@
 
 #define TAG "AI"
 
-
 /* Состояние */
 float actual_pressure = 7.8f;
 float set_pressure = 10.0f;
@@ -34,10 +33,7 @@ static lv_obj_t *root;
 lv_obj_t *screen_title;
 lv_obj_t *clock_label;
 static lv_obj_t *network_label;
-static lv_obj_t *auto_page;
-
 static lv_obj_t *setpoint_modal;
-static lv_obj_t *manual_confirm_modal;
 
 void set_message(lv_obj_t *label, const char *text)
 {
