@@ -49,6 +49,10 @@ static void confirm_manual_event(lv_event_t *e)
         hmi_confirm_modal_api.hide();
         hmi_auto_page.hide();
         hmi_manual_page.show();
+
+        auto_running = false;
+        update_big_button(auto_start_btn, false);
+        auto_screen_active = false;
         
         lv_label_set_text(screen_title, "РУЧНОЙ РЕЖИМ");
         hmi_manual_page.set_message("Переключено в ручной режим");

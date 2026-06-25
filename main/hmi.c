@@ -112,18 +112,6 @@ static void show_modal(lv_obj_t *modal, bool show)
         lv_obj_add_flag(modal, LV_OBJ_FLAG_HIDDEN);
 }
 
-static void open_manual_now(void)
-{
-    auto_running = false;
-    update_big_button(auto_start_btn, false);
-    auto_screen_active = false;
-    lv_label_set_text(screen_title, "РУЧНОЙ РЕЖИМ");
-    lv_obj_add_flag(auto_page, LV_OBJ_FLAG_HIDDEN);
-    
-    hmi_manual_page.show();
-    hmi_manual_page.set_message( "Ручной режим активирован");
-}
-
 static void save_setpoint_event(lv_event_t *e)
 {
     LV_UNUSED(e);
