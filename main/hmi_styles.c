@@ -62,6 +62,8 @@ static void init_styles(void)
     lv_style_set_border_color(ST_BTN_DARK, C_BORDER_LT);
     lv_style_set_radius(ST_BTN_DARK, 8);
     lv_style_set_pad_all(ST_BTN_DARK, 12);
+    lv_style_set_outline_width (ST_BTN_DARK, 0);    
+    lv_style_set_border_width (ST_BTN_DARK, 0);    
 
     lv_style_init(ST_BTN_GREEN);
     lv_style_set_bg_color(ST_BTN_GREEN, lv_color_hex(0x1F9A3A));
@@ -86,43 +88,40 @@ static void init_styles(void)
     lv_style_set_bg_grad_color(ST_BTN_GRAY, lv_color_hex(0x334250));
     lv_style_set_bg_grad_dir(ST_BTN_GRAY, LV_GRAD_DIR_VER);
 
+    lv_style_init(ST_BTN_SELECTED);
+    lv_style_set_outline_width(ST_BTN_SELECTED, 3);
+    lv_style_set_outline_color(ST_BTN_SELECTED, lv_color_hex(0xff8c99));
+    lv_style_set_outline_pad(ST_BTN_SELECTED, 3);
+    lv_style_set_bg_color(ST_BTN_SELECTED, lv_color_hex(0x2c3d52));
+    lv_style_set_bg_opa(ST_BTN_SELECTED, LV_OPA_COVER);
+    lv_style_set_shadow_width(ST_BTN_SELECTED, 12);
+    lv_style_set_shadow_color(ST_BTN_SELECTED, lv_color_hex(0xff8c00));
+    lv_style_set_shadow_opa(ST_BTN_SELECTED, LV_OPA_50);
 
-      // Настройка фона подложки клавиатуры
-      lv_style_init(&hmi_styles.st_kb_main);
-      lv_style_set_bg_color(&hmi_styles.st_kb_main, lv_color_hex(0x151E27)); 
-      lv_style_set_bg_opa(&hmi_styles.st_kb_main, LV_OPA_COVER);
-      lv_style_set_pad_all(&hmi_styles.st_kb_main, 8);
-      lv_style_set_pad_gap(&hmi_styles.st_kb_main, 6);
-      lv_style_set_border_width(&hmi_styles.st_kb_main, 0);
+
+
+    // Настройка фона подложки клавиатуры
+    lv_style_init(&hmi_styles.st_kb_main);
+    lv_style_set_bg_color(&hmi_styles.st_kb_main, lv_color_hex(0x151E27)); 
+    lv_style_set_bg_opa(&hmi_styles.st_kb_main, LV_OPA_COVER);
+    lv_style_set_pad_all(&hmi_styles.st_kb_main, 8);
+    lv_style_set_pad_gap(&hmi_styles.st_kb_main, 6);
+    lv_style_set_border_width(&hmi_styles.st_kb_main, 0);
   
-      // Настройка кнопок клавиатуры (Обычное состояние)
-      lv_style_init(&hmi_styles.st_kb_items);
-      lv_style_set_bg_color(&hmi_styles.st_kb_items, lv_color_hex(0x212D3A)); // Твой глубокий сине-серый
-      lv_style_set_bg_opa(&hmi_styles.st_kb_items, LV_OPA_COVER);
-      lv_style_set_text_color(&hmi_styles.st_kb_items, lv_color_white());     
-      lv_style_set_radius(&hmi_styles.st_kb_items, 6);                        
+    // Настройка кнопок клавиатуры (Обычное состояние)
+    lv_style_init(&hmi_styles.st_kb_items);
+    lv_style_set_bg_color(&hmi_styles.st_kb_items, lv_color_hex(0x212D3A)); // Твой глубокий сине-серый
+    lv_style_set_bg_opa(&hmi_styles.st_kb_items, LV_OPA_COVER);
+    lv_style_set_text_color(&hmi_styles.st_kb_items, lv_color_white());     
+    lv_style_set_radius(&hmi_styles.st_kb_items, 6);                        
       
-    // Найти в hmi_styles.c блок настройки шрифта для клавиатуры и заменить:
+    lv_style_init(&hmi_styles.st_kb_items_pressed);
+    lv_style_set_bg_color(&hmi_styles.st_kb_items_pressed, lv_color_hex(0x212D3A)); // Твой сине-серый
+    lv_style_set_bg_opa(&hmi_styles.st_kb_items_pressed, LV_OPA_COVER);
+    lv_style_set_text_color(&hmi_styles.st_kb_items_pressed, lv_color_white());     
+    lv_style_set_radius(&hmi_styles.st_kb_items_pressed, 6);                        
 
-       // Найти блок st_kb_items в hmi_styles.c и заменить:
-       lv_style_init(&hmi_styles.st_kb_items);
-       lv_style_set_bg_color(&hmi_styles.st_kb_items, lv_color_hex(0x212D3A)); // Твой сине-серый
-       lv_style_set_bg_opa(&hmi_styles.st_kb_items, LV_OPA_COVER);
-       lv_style_set_text_color(&hmi_styles.st_kb_items, lv_color_white());     
-       lv_style_set_radius(&hmi_styles.st_kb_items, 6);                        
-       
-       // ЖЕЛЕЗНЫЙ ВАРИАНТ: Передаем адрес твоего инициализированного шрифта напрямую.
-       // (Подставь имя своего шрифта, который ты используешь для вывода обычного текста в hmi.c)
-       lv_style_set_text_font(&hmi_styles.st_kb_items, &lv_font_montserrat_20); 
-   
-       lv_style_set_border_width(&hmi_styles.st_kb_items, 0);   
-       lv_style_set_shadow_width(&hmi_styles.st_kb_items, 0);   
-       lv_style_set_outline_width(&hmi_styles.st_kb_items, 0);  
-   
-  
-
-    
-
+    lv_style_set_text_font(&hmi_styles.st_kb_items, &lv_font_montserrat_20); 
 
 }
 

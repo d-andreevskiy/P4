@@ -32,6 +32,10 @@ static void kb_event_cb(lv_event_t *e);
 static void create_param_row(lv_obj_t *parent, const char *name, const char *desc, const char *reg_name, int32_t *val_ptr);
 static void hmi_settings_save_event(lv_event_t *e);
 
+// переменные для выделения редактируемых значений
+static int button_old_index;
+static lv_obj_t *button_old_parent; 
+
 static void kb_value_changed_cb(lv_event_t * e)
 {
     // Проверяем, что событие — именно изменение текста
@@ -68,12 +72,25 @@ static void settings_page_create(lv_obj_t *parent)
 {
     settings_page = lv_obj_create(parent);
     lv_obj_remove_style_all(settings_page);
+
+
+    lv_obj_add_style(settings_page, ST_TOPBAR, 0);
+
+    lv_obj_set_style_border_width(settings_page,0,0);
+    lv_obj_set_style_outline_width(settings_page,0,0);
+    lv_obj_set_style_shadow_width(settings_page,0,0);
+
     lv_obj_set_size(settings_page, LV_PCT(100), LV_PCT(100));
+
+
 
     // Сетка: Левое меню (240px) | Контент (Остаток) ; Строки: Контент | Футер (60px)
     static lv_coord_t main_col_dsc[] = {240, LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
     static lv_coord_t main_row_dsc[] = {LV_GRID_FR(1), 60, LV_GRID_TEMPLATE_LAST};
     lv_obj_set_grid_dsc_array(settings_page, main_col_dsc, main_row_dsc);
+
+    lv_obj_set_style_layout(settings_page, LV_LAYOUT_GRID, 0);
+
     lv_obj_set_style_pad_all(settings_page, 10, 0);
     lv_obj_set_style_pad_gap(settings_page, 15, 0);
     lv_obj_add_flag(settings_page, LV_OBJ_FLAG_HIDDEN); // По умолчанию скрыта
@@ -107,11 +124,21 @@ static void settings_page_create(lv_obj_t *parent)
     // --- ПРАВАЯ ОБЛАСТЬ КОНТЕНТА ПОДСТРАНИЦ ---
     lv_obj_t *content_area = lv_obj_create(settings_page);
     lv_obj_remove_style_all(content_area);
+
+    lv_obj_set_style_border_width(content_area,0,0);
+    lv_obj_set_style_outline_width(content_area,0,0);
+    lv_obj_set_style_shadow_width(content_area,0,0);
+
     lv_obj_set_grid_cell(content_area, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
 
     for(int i = 0; i < 5; i++) {
         sub_pages[i] = lv_obj_create(content_area);
         lv_obj_remove_style_all(sub_pages[i]);
+
+        lv_obj_set_style_border_width(sub_pages[i],0,0);
+        lv_obj_set_style_outline_width(sub_pages[i],0,0);
+        lv_obj_set_style_shadow_width(sub_pages[i],0,0);
+
         lv_obj_set_size(sub_pages[i], LV_PCT(100), LV_PCT(100));
         lv_obj_add_flag(sub_pages[i], LV_OBJ_FLAG_HIDDEN);
     }
@@ -224,6 +251,7 @@ static void create_param_row(lv_obj_t *parent, const char *name, const char *des
     char char_buf[16];
     snprintf(char_buf, sizeof(char_buf), "%d", *val_ptr);
     lv_obj_t *val_btn = button(row, char_buf, ST_BTN_DARK);
+    lv_obj_add_style(val_btn, ST_BTN_SELECTED, LV_STATE_USER_1);
     lv_obj_set_size(val_btn, 90, 38);
     // Зажимаем в ячейку (2,0)
     lv_obj_set_grid_cell(val_btn, LV_GRID_ALIGN_END, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
@@ -242,54 +270,76 @@ static void param_input_click_cb(lv_event_t * e)
     current_val_btn = lv_event_get_target(e);
     current_editing_val = (int32_t *)lv_obj_get_user_data(current_val_btn);
 
-    // Блокирующий фоновый слой
-    modal_kb_bg = lv_obj_create(settings_page);
+
+    // 1. Создаем блокирующую подложку на самом верхнем системном слое (на весь экран)
+    modal_kb_bg = lv_obj_create(lv_screen_active());
     lv_obj_set_size(modal_kb_bg, LV_PCT(100), LV_PCT(100));
     lv_obj_set_style_bg_color(modal_kb_bg, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(modal_kb_bg, LV_OPA_60, 0);
     lv_obj_remove_flag(modal_kb_bg, LV_OBJ_FLAG_SCROLLABLE);
 
-    // Контейнер клавиатуры
+    lv_obj_move_to_index(current_val_btn, -1);
+    lv_obj_add_state(current_val_btn, LV_STATE_USER_1);
+
+    lv_obj_set_style_outline_width(modal_kb_bg,0,0);
+    lv_obj_set_style_border_width(modal_kb_bg,0,0);
+
+    // 3. Создаем контейнер клавиатуры внутри подложки
     lv_obj_t *box = lv_obj_create(modal_kb_bg);
     lv_obj_set_size(box, 380, 350);
-    lv_obj_center(box); // Центрируем бокс (или lv_obj_center(box))
-    lv_obj_add_style(box, ST_TOPBAR, 0); 
+    lv_obj_center(box);
+    lv_obj_add_style(box, ST_TOPBAR, 0);
     lv_obj_set_flex_flow(box, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_all(box, 12, 0);
     lv_obj_set_style_pad_gap(box, 10, 0);
+    lv_obj_set_style_outline_width(box,0,0);
 
-    // Текстовое поле ввода
+    // 4. Текстовое поле ввода внутри бокса
     modal_ta = lv_textarea_create(box);
     lv_obj_set_width(modal_ta, LV_PCT(100));
     lv_textarea_set_one_line(modal_ta, true);
     lv_textarea_set_accepted_chars(modal_ta, "0123456789-");
-    
-    char char_buf[32];
-    snprintf(char_buf, sizeof(char_buf), "%d", *current_editing_val);
-    lv_textarea_set_text(modal_ta, char_buf);
-    lv_obj_add_state(modal_ta, LV_STATE_FOCUSED);
+    lv_obj_add_event_cb(modal_ta, kb_value_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_remove_flag(modal_ta, LV_OBJ_FLAG_CLICK_FOCUSABLE);
 
-    // Создаем встроенную клавиатуру
-    // Найти в hmi_settings_page.c место создания клавиатуры:
+    char char_buf[16];
+    snprintf(char_buf, sizeof(char_buf), "%ld", (long)*current_editing_val);
+    lv_textarea_set_text(modal_ta, char_buf);
+
+    // 5. Создаем встроенную клавиатуру
     lv_obj_t *kb = lv_keyboard_create(box);
     lv_obj_set_width(kb, LV_PCT(100));
     lv_obj_set_flex_grow(kb, 1);
     lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_NUMBER);
     lv_keyboard_set_textarea(kb, modal_ta);
 
-    // Чистое и безопасное наложение стилей
-    lv_obj_add_style(kb, ST_KB_MAIN, LV_PART_MAIN);
-    lv_obj_add_style(kb, ST_KB_ITEMS, LV_PART_ITEMS);
+    // Накладываем матовые стили на клавиатуру
+    lv_obj_add_style(kb, ST_KB_MAIN, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_style(kb, ST_KB_ITEMS, LV_PART_ITEMS | LV_STATE_DEFAULT);
+    lv_obj_add_style(kb, ST_KB_ITEMS, LV_PART_ITEMS | LV_STATE_CHECKED);
     lv_obj_add_style(kb, ST_KB_ITEMS_PR, LV_PART_ITEMS | LV_STATE_PRESSED);
+
+    lv_obj_set_style_outline_width(kb,0,LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(kb,0,LV_PART_MAIN | LV_STATE_DEFAULT);
 
     lv_obj_add_event_cb(kb, kb_event_cb, LV_EVENT_READY, NULL);
     lv_obj_add_event_cb(kb, kb_event_cb, LV_EVENT_CANCEL, NULL);
 
-    lv_obj_add_event_cb(kb, kb_value_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    button_old_parent = lv_obj_get_parent(current_val_btn);
+    button_old_index = lv_obj_get_index(current_val_btn);
 
+    lv_area_t btn_coords;
+    lv_obj_get_coords(current_val_btn, &btn_coords);
 
+    lv_obj_set_parent(current_val_btn, lv_screen_active());
+    lv_obj_set_pos(current_val_btn, btn_coords.x1, btn_coords.y1);
+
+    lv_obj_move_to_index(current_val_btn, -1);
+
+    lv_obj_add_state(current_val_btn, LV_STATE_USER_1);
+
+    lv_obj_update_layout(current_val_btn);
 }
-
 
 static void kb_event_cb(lv_event_t * e)
 {
@@ -315,6 +365,14 @@ static void kb_event_cb(lv_event_t * e)
         // Нажат крестик (X) — отмена ввода
         lv_obj_delete(modal_kb_bg);
         modal_kb_bg = NULL;
+    }
+
+    if (current_val_btn && button_old_parent) {
+        lv_obj_remove_state(current_val_btn, LV_STATE_USER_1);
+        lv_obj_set_parent(current_val_btn, button_old_parent);
+        lv_obj_move_to_index(current_val_btn, button_old_index);
+        lv_obj_set_grid_cell(current_val_btn, LV_GRID_ALIGN_END, 2,1, LV_GRID_ALIGN_CENTER, 0,1);
+        lv_obj_update_layout(current_val_btn);
     }
 
 }

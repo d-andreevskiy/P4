@@ -77,6 +77,8 @@ typedef struct {
     lv_style_t st_kb_main;
     lv_style_t st_kb_items;
     lv_style_t st_kb_items_pressed;
+
+    lv_style_t st_btn_selected;
     
     void (*init)(void);
 
@@ -99,6 +101,7 @@ typedef struct {
 #define ST_KB_MAIN         (&hmi_styles.st_kb_main)
 #define ST_KB_ITEMS        (&hmi_styles.st_kb_items)
 #define ST_KB_ITEMS_PR     (&hmi_styles.st_kb_items_pressed)
+#define ST_BTN_SELECTED    (&hmi_styles.st_btn_selected)
 
  
 } hmi_styles_t;
