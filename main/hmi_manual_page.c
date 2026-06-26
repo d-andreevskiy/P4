@@ -14,9 +14,10 @@ static lv_obj_t *manual_msg_label; // <-- Наш целевой указател
 // lv_obj_t *manual_start_btn;
 
 static void manual_page_set_message(const char *text) {
-    if (manual_msg_label != NULL) {
-        set_message(manual_msg_label, text);
-    }
+    // Безопасная проверка! Если лейбл еще не создан — мы не упадем!
+    // if (manual_msg_label != NULL) {
+    //     set_message(manual_msg_label, text);
+    // }
 }
 
 static void manual_start_event(lv_event_t *e)

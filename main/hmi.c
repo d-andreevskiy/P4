@@ -26,7 +26,7 @@ float set_pressure = 10.0f;
 
 bool auto_running = false;
 bool manual_running = false;
-bool auto_screen_active = true;
+hmi_page_t hmi_current_page = HMI_PAGE_AUTO;
 
 /* Объекты */
 static lv_obj_t *root;
@@ -189,6 +189,7 @@ void hmi_create(uint8_t *font_buf, long buffer_size)
     hmi_manual_page.create(content);
     hmi_setpoint_modal_api.create(root);
     hmi_confirm_modal_api.create(root);
+    hmi_settings.create(content);
 
     // Управление отображением по умолчанию
     hmi_auto_page.show();

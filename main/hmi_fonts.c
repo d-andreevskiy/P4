@@ -1,5 +1,6 @@
 #include "hmi.h"
 
+lv_font_t *lv_font_16;
 lv_font_t *lv_font_20;
 lv_font_t *lv_font_22;
 lv_font_t *lv_font_24;
@@ -92,7 +93,8 @@ void init_fonts(uint8_t *font_buf, long buffer_size)
     }
 
     ESP_LOGI(TAG, "Мгновенное создание шрифтов из выделенной PSRAM...");
-    
+
+    lv_font_16 = lvgl_font_init(font_buf, buffer_size, 16);
     lv_font_20 = lvgl_font_init(font_buf, buffer_size, 20);
     lv_font_22 = lvgl_font_init(font_buf, buffer_size, 22);
     lv_font_24 = lvgl_font_init(font_buf, buffer_size, 24);

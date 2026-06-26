@@ -24,11 +24,19 @@
 
 #define C_GREEN          lv_color_hex(0x2ECC71)
 
+typedef enum {
+    HMI_PAGE_AUTO = 0,
+    HMI_PAGE_MANUAL,
+    HMI_PAGE_SETTINGS
+} hmi_page_t;
+
+extern hmi_page_t hmi_current_page;
 
 // Переменные из hmi.c
 
 extern bool manual_running;
 
+extern lv_font_t *lv_font_16;
 extern lv_font_t *lv_font_20;
 extern lv_font_t *lv_font_22;
 extern lv_font_t *lv_font_24;
@@ -64,6 +72,12 @@ typedef struct {
     lv_style_t st_big_green;
     lv_style_t st_big_blue;
     lv_style_t st_big_orange;
+    
+    // Новые переменные стилей для кастомизации встроенной клавиатуры
+    lv_style_t st_kb_main;
+    lv_style_t st_kb_items;
+    lv_style_t st_kb_items_pressed;
+    
     void (*init)(void);
 
 #define ST_ROOT            (&hmi_styles.st_root)
@@ -80,6 +94,12 @@ typedef struct {
 #define ST_BIG_GREEN       (&hmi_styles.st_big_green)
 #define ST_BIG_BLUE        (&hmi_styles.st_big_blue)
 #define ST_BIG_ORANGE      (&hmi_styles.st_big_orange)
+
+// Добавляем короткие макросы-"аксессоры" для клавиатуры
+#define ST_KB_MAIN         (&hmi_styles.st_kb_main)
+#define ST_KB_ITEMS        (&hmi_styles.st_kb_items)
+#define ST_KB_ITEMS_PR     (&hmi_styles.st_kb_items_pressed)
+
  
 } hmi_styles_t;
 
@@ -172,6 +192,17 @@ typedef struct {
 } hmi_auto_t;
 
 extern const hmi_auto_t hmi_auto;
+
+
+// --- НАСТРОЙКИ
+
+typedef struct hmi_settings {
+    void (*create) (lv_obj_t *parent);
+    void (*show) (void);
+    void (*hide) (void);
+} hmi_settings_t;
+
+extern hmi_settings_t hmi_settings;
 
 
 // extern void register_manual_page_api(void);

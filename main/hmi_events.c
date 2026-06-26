@@ -23,11 +23,34 @@ static void cancel_manual_event(lv_event_t *e);
 // --- 1. СОБЫТИЯ ТОПБАРА И НАВИГАЦИИ ---
 static void settings_event(lv_event_t *e)
 {
-    LV_UNUSED(e);
-    if (auto_screen_active)
-        set_message(auto_msg_label, "Открытие настроек пока не реализовано");
-    else
-        hmi_manual_page.set_message( "Открытие настроек пока не реализовано");
+    if (lv_event_get_code(e) != LV_EVENT_CLICKED)
+        return;
+
+    static hmi_page_t page_before_settings = HMI_PAGE_AUTO;
+
+    if (hmi_current_page == HMI_PAGE_SETTINGS) {
+        hmi_settings.hide();
+
+        if (page_before_settings == HMI_PAGE_MANUAL) {
+            hmi_manual_page.show();
+            lv_label_set_text(screen_title, "РУЧНОЙ РЕЖИМ");    
+        } else {
+            hmi_auto_page.show();
+            lv_label_set_text(screen_title, "АВТО РЕЖИМ");    
+        }
+
+    } else {
+        page_before_settings  = hmi_current_page;
+
+        if (hmi_current_page == HMI_PAGE_MANUAL)
+            hmi_manual_page.hide();
+        else 
+            hmi_auto_page.hide();
+
+        hmi_settings.show();
+        lv_label_set_text(screen_title, "НАСТРОЙКА СИСТЕМЫ");
+        
+    }
 }
 
 static void to_manual_event(lv_event_t *e)
@@ -52,7 +75,6 @@ static void confirm_manual_event(lv_event_t *e)
 
         auto_running = false;
         update_big_button(auto_start_btn, false);
-        auto_screen_active = false;
         
         lv_label_set_text(screen_title, "РУЧНОЙ РЕЖИМ");
         hmi_manual_page.set_message("Переключено в ручной режим");
@@ -87,10 +109,17 @@ static void pressure_timer_cb(lv_timer_t *timer)
     if (actual_pressure > HMI_PRESSURE_MAX) actual_pressure = HMI_PRESSURE_MAX;
 
     // Вызываем инкапсулированное обновление активной страницы
-    if (auto_screen_active) {
+    switch (hmi_current_page)
+    {
+    case HMI_PAGE_AUTO:
         hmi_auto_page.update();
-    } else {
-       // hmi_manual_page.update(); // Если ручной режим поддерживает .update
+        break;
+
+    case HMI_PAGE_MANUAL:
+        break;
+    
+    default:
+        break;
     }
 }
 
@@ -103,7 +132,6 @@ static void open_auto_event(lv_event_t *e)
     hmi_manual_page.update_status(false);
 
     // Переключаем экраны через API модулей
-    auto_screen_active = true;
     lv_label_set_text(screen_title, "АВТО РЕЖИМ");
     
     hmi_manual_page.hide();

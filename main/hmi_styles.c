@@ -85,6 +85,45 @@ static void init_styles(void)
     lv_style_set_bg_color(ST_BTN_GRAY, lv_color_hex(0x1C2732));
     lv_style_set_bg_grad_color(ST_BTN_GRAY, lv_color_hex(0x334250));
     lv_style_set_bg_grad_dir(ST_BTN_GRAY, LV_GRAD_DIR_VER);
+
+
+      // Настройка фона подложки клавиатуры
+      lv_style_init(&hmi_styles.st_kb_main);
+      lv_style_set_bg_color(&hmi_styles.st_kb_main, lv_color_hex(0x151E27)); 
+      lv_style_set_bg_opa(&hmi_styles.st_kb_main, LV_OPA_COVER);
+      lv_style_set_pad_all(&hmi_styles.st_kb_main, 8);
+      lv_style_set_pad_gap(&hmi_styles.st_kb_main, 6);
+      lv_style_set_border_width(&hmi_styles.st_kb_main, 0);
+  
+      // Настройка кнопок клавиатуры (Обычное состояние)
+      lv_style_init(&hmi_styles.st_kb_items);
+      lv_style_set_bg_color(&hmi_styles.st_kb_items, lv_color_hex(0x212D3A)); // Твой глубокий сине-серый
+      lv_style_set_bg_opa(&hmi_styles.st_kb_items, LV_OPA_COVER);
+      lv_style_set_text_color(&hmi_styles.st_kb_items, lv_color_white());     
+      lv_style_set_radius(&hmi_styles.st_kb_items, 6);                        
+      
+    // Найти в hmi_styles.c блок настройки шрифта для клавиатуры и заменить:
+
+       // Найти блок st_kb_items в hmi_styles.c и заменить:
+       lv_style_init(&hmi_styles.st_kb_items);
+       lv_style_set_bg_color(&hmi_styles.st_kb_items, lv_color_hex(0x212D3A)); // Твой сине-серый
+       lv_style_set_bg_opa(&hmi_styles.st_kb_items, LV_OPA_COVER);
+       lv_style_set_text_color(&hmi_styles.st_kb_items, lv_color_white());     
+       lv_style_set_radius(&hmi_styles.st_kb_items, 6);                        
+       
+       // ЖЕЛЕЗНЫЙ ВАРИАНТ: Передаем адрес твоего инициализированного шрифта напрямую.
+       // (Подставь имя своего шрифта, который ты используешь для вывода обычного текста в hmi.c)
+       lv_style_set_text_font(&hmi_styles.st_kb_items, &lv_font_montserrat_20); 
+   
+       lv_style_set_border_width(&hmi_styles.st_kb_items, 0);   
+       lv_style_set_shadow_width(&hmi_styles.st_kb_items, 0);   
+       lv_style_set_outline_width(&hmi_styles.st_kb_items, 0);  
+   
+  
+
+    
+
+
 }
 
 __attribute__((constructor)) static void register_styles_api(void) {

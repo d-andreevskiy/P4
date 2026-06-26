@@ -117,7 +117,7 @@ static void auto_page_show(void)
     if (auto_page)
     {
         lv_obj_clear_flag(auto_page, LV_OBJ_FLAG_HIDDEN);
-        auto_screen_active = true;
+        hmi_current_page = HMI_PAGE_AUTO;
     }
 }
 
