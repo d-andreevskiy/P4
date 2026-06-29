@@ -12,6 +12,7 @@ idf_component_register(
         hmi_modal_setpoint.c
         hmi_modal_confirm.c
         hmi_settings.c
+        hmi_logger.c
         ${LV_DEMOS_SOURCES}
     INCLUDE_DIRS . ${LV_DEMO_DIR}
     PRIV_REQUIRES esp_driver_i2c  nvs_flash bsp_extra)

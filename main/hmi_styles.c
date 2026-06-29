@@ -41,7 +41,7 @@ static void init_styles(void)
 
     lv_style_init(ST_MUTED);
     lv_style_set_text_color(ST_MUTED, C_MUTED);
-    lv_style_set_text_font(ST_MUTED, lv_font_22);
+    lv_style_set_text_font(ST_MUTED, lv_font_16);
 
     lv_style_init(ST_BIG_GREEN);
     lv_style_set_text_color(ST_BIG_GREEN, C_GREEN);
@@ -88,15 +88,15 @@ static void init_styles(void)
     lv_style_set_bg_grad_color(ST_BTN_GRAY, lv_color_hex(0x334250));
     lv_style_set_bg_grad_dir(ST_BTN_GRAY, LV_GRAD_DIR_VER);
 
-    lv_style_init(ST_BTN_SELECTED);
-    lv_style_set_outline_width(ST_BTN_SELECTED, 3);
-    lv_style_set_outline_color(ST_BTN_SELECTED, lv_color_hex(0xff8c99));
-    lv_style_set_outline_pad(ST_BTN_SELECTED, 3);
-    lv_style_set_bg_color(ST_BTN_SELECTED, lv_color_hex(0x2c3d52));
-    lv_style_set_bg_opa(ST_BTN_SELECTED, LV_OPA_COVER);
-    lv_style_set_shadow_width(ST_BTN_SELECTED, 12);
-    lv_style_set_shadow_color(ST_BTN_SELECTED, lv_color_hex(0xff8c00));
-    lv_style_set_shadow_opa(ST_BTN_SELECTED, LV_OPA_50);
+    lv_style_init(ST_BTN_SELECT);
+    lv_style_set_outline_width(ST_BTN_SELECT, 3);
+    lv_style_set_outline_color(ST_BTN_SELECT, lv_color_hex(0xff8c99));
+    lv_style_set_outline_pad(ST_BTN_SELECT, 3);
+    lv_style_set_bg_color(ST_BTN_SELECT, lv_color_hex(0x2c3d52));
+    lv_style_set_bg_opa(ST_BTN_SELECT, LV_OPA_COVER);
+    lv_style_set_shadow_width(ST_BTN_SELECT, 12);
+    lv_style_set_shadow_color(ST_BTN_SELECT, lv_color_hex(0xff8c00));
+    lv_style_set_shadow_opa(ST_BTN_SELECT, LV_OPA_50);
 
 
 
@@ -110,7 +110,7 @@ static void init_styles(void)
   
     // Настройка кнопок клавиатуры (Обычное состояние)
     lv_style_init(&hmi_styles.st_kb_items);
-    lv_style_set_bg_color(&hmi_styles.st_kb_items, lv_color_hex(0x212D3A)); // Твой глубокий сине-серый
+    lv_style_set_bg_color(&hmi_styles.st_kb_items, lv_color_hex(0x3498db)); // Твой глубокий сине-серый
     lv_style_set_bg_opa(&hmi_styles.st_kb_items, LV_OPA_COVER);
     lv_style_set_text_color(&hmi_styles.st_kb_items, lv_color_white());     
     lv_style_set_radius(&hmi_styles.st_kb_items, 6);                        
@@ -122,6 +122,7 @@ static void init_styles(void)
     lv_style_set_radius(&hmi_styles.st_kb_items_pressed, 6);                        
 
     lv_style_set_text_font(&hmi_styles.st_kb_items, &lv_font_montserrat_20); 
+    lv_style_set_text_font(&hmi_styles.st_kb_items_pressed, &lv_font_montserrat_20); 
 
 }
 

@@ -1,4 +1,8 @@
 #include "hmi.h"
+#include <time.h>
+#include <sys/time.h>
+#include "esp_log.h"
+#include "hmi_logger.h"
 
 // Глобальные переменные навигации (объявлены в hmi.h)
 lv_obj_t * settings_page = NULL;
@@ -14,10 +18,20 @@ static lv_obj_t *modal_ta = NULL;
 static int32_t *current_editing_val = NULL; // Указатель на текущую переменную регистра
 static lv_obj_t *current_val_btn = NULL;     // Кнопка, по которой кликнули
 
+static lv_obj_t *pressure_chart = NULL;
+static lv_chart_series_t *pressure_series = NULL;
+static lv_timer_t *chart_update_timer = NULL; // Таймер обновления данных
+
+
 // Временный буфер для карты регистров (Modbus / NVS)
 static int32_t temp_reg9 = 180;   // Мин. датчик давления
 static int32_t temp_reg10 = 3850; // Макс. датчик давления
 static int32_t temp_reg11 = 1;    // Номер входа давления
+static int32_t temp_reg12 = 8;     // Время разгона системы (сек)
+static int32_t temp_reg13 = 1500;  // Время стабилизации (мс)
+static int32_t temp_reg14 = 3000;  // Задержка аварии по уровню (мс)
+static int32_t temp_reg15 = 10000; // Задержка включения после аварии (мс)
+static int32_t temp_reg16 = 500;   // Время реакции датчика уровня воды (мс)
 static int32_t temp_reg17 = 2;    // Номер входа уровня воды
 
 // Прототипы локальных функций
@@ -36,6 +50,183 @@ static void hmi_settings_save_event(lv_event_t *e);
 static int button_old_index;
 static lv_obj_t *button_old_parent; 
 
+
+static void chart_timer_cb(lv_timer_t * timer)
+{
+    if(!pressure_chart || !pressure_series) return;
+
+    // В будущем здесь будет считываться реальная боевая переменная modbus_reg10 (давление)
+    // А пока делаем симуляцию: рабочее давление ~6.0 bar с пульсацией
+    static int32_t base_pressure = 600; // 6.00 bar в попугаях
+    int32_t noise = (rand() % 41) - 20; // Колебания +/- 0.2 bar
+    int32_t current_p = base_pressure + noise;
+
+    // Ограничиваем уставку рамками графика от 0 до 16 bar
+    if(current_p < 0) current_p = 0;
+    if(current_p > 1600) current_p = 1600;
+
+    // Добавляем новое значение в конец графика (LVGL сам сдвинет старые точки влево)
+    lv_chart_set_next_value(pressure_chart, pressure_series, current_p);
+}
+
+// === 1. КОЛБЭКИ ДЛЯ КНОПОК ДИАГНОСТИКИ (Добавить перед build_info_sub_page) ===
+
+// Колбэк для кнопки "Тест связи"
+static void test_comm_click_cb(lv_event_t * e)
+{
+    if(lv_event_get_code(e) != LV_EVENT_CLICKED) return;
+    
+    static int test_cnt = 1;
+    char log_buf[64];
+    
+    // Форматируем сообщение с инкрементом счетчика тестовых пакетов
+    snprintf(log_buf, sizeof(log_buf), "Тест связи: пакет #%d успешно отправлен", test_cnt++);
+    
+    // Вызываем глобальный логгер (светофор: зеленый цвет для OK)
+    hmi_log_add("OK", log_buf, lv_color_hex(0x2ECC71));
+}
+
+// Колбэк для кнопки "Очистить тест"
+static void clear_log_click_cb(lv_event_t * e)
+{
+    if(lv_event_get_code(e) != LV_EVENT_CLICKED) return;
+    
+    // Полностью очищаем все строки из контейнера журнала
+    if(hmi_log_container) {
+        lv_obj_clean(hmi_log_container);
+        
+        // Пишем сервисное уведомление об очистке
+        hmi_log_add("WARN", "Журнал событий очищен оператором", lv_color_hex(0xE67E22));
+    }
+}
+
+
+static void build_chart_sub_page(lv_obj_t * page)
+{
+    // Жестко растягиваем вкладку на весь правый экран
+    lv_obj_set_size(page, LV_PCT(100), LV_PCT(100));
+
+    // Вертикальный Flex-ряд
+    lv_obj_set_style_layout(page, LV_LAYOUT_FLEX, 0);
+    lv_obj_set_flex_flow(page, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(page, 15, 0);
+    lv_obj_set_style_pad_gap(page, 10, 0);
+
+    // --- БЛОК ВЕРХНИХ КНОПОК ---
+    lv_obj_t *btn_row = lv_obj_create(page);
+    lv_obj_remove_style_all(btn_row);
+    lv_obj_set_size(btn_row, LV_PCT(100), 45);
+    lv_obj_set_style_layout(btn_row, LV_LAYOUT_FLEX, 0);
+    lv_obj_set_flex_flow(btn_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_style_pad_gap(btn_row, 15, 0);
+
+    lv_obj_t *btn_refresh = button(btn_row, "Обновить график", ST_BTN_BLUE);
+    lv_obj_set_size(btn_refresh, 150, 38);
+    
+    lv_obj_t *btn_log = button(btn_row, "Открыть журнал", ST_BTN_BLUE);
+    lv_obj_set_size(btn_log, 140, 38);
+
+    // ПОДЗАГОЛОВОК
+    lv_obj_t *sub_title = label(page, "4.2 График давления: X = время 60 сек, Y = давление bar", ST_TEXT);
+    lv_obj_set_style_text_color(sub_title, lv_color_hex(0x3498DB), 0);
+
+    // --- СОЗДАНИЕ ВИДЖЕТА LV_CHART ---
+    pressure_chart = lv_chart_create(page);
+    lv_obj_set_width(pressure_chart, LV_PCT(100));
+    lv_obj_set_flex_grow(pressure_chart, 1); // Растягиваем график до самого низа футера
+    lv_obj_add_style(pressure_chart, ST_PANEL, 0); // Твой красивый темный фон подложки
+    
+    // Настраиваем тип: линейный график
+    lv_chart_set_type(pressure_chart, LV_CHART_TYPE_LINE);
+    
+    // Задаем количество точек по горизонтали (60 секунд * 2 обновления в сек = 120 точек)
+    lv_chart_set_point_count(pressure_chart, 120);
+    
+    // Настраиваем диапазон оси Y: от 0 до 1600 (сотые доли для точности, т.е. 0 - 16.00 bar)
+    lv_chart_set_range(pressure_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 1600);
+    
+    // Делаем линии графика чуть толще для лучшей видимости на 7" экране
+    lv_obj_set_style_line_width(pressure_chart, 3, LV_PART_ITEMS);
+
+    // Добавляем сетку (Grid): 4 горизонтальных линии (0, 4, 8, 12, 16) и 6 вертикальных (каждые 10с)
+    lv_chart_set_div_line_count(pressure_chart, 5, 7);
+
+    // ДОБАВЛЯЕМ СЕРИЮ ДАННЫХ (Синяя линия давления)
+    pressure_series = lv_chart_add_series(pressure_chart, lv_color_hex(0x3498DB), LV_CHART_AXIS_PRIMARY_Y);
+
+    // Заполняем начальный график базовыми точками в 6 bar, чтобы он не был пустым при старте
+    for(int i = 0; i < 120; i++) {
+        lv_chart_set_next_value(pressure_chart, pressure_series, 600);
+    }
+
+    // ЗАПУСКАЕМ СИСТЕМНЫЙ ТАЙМЕР ОБНОВЛЕНИЯ (Период 500 миллисекунд)
+    chart_update_timer = lv_timer_create(chart_timer_cb, 500, NULL);
+}
+
+
+// === 2. ГЛАВНАЯ ФУНКЦИЯ СБОРКИ СТРАНИЦЫ (Полный код со всеми кнопками) ===
+static void build_info_sub_page(lv_obj_t * page)
+{
+    // Гарантируем, что подстраница занимает 100% выделенной ей контент-зоны в Grid
+    lv_obj_set_size(page, LV_PCT(100), LV_PCT(100));
+
+    // Включаем вертикальный Flex-ряд (компоновка элементов сверху вниз)
+    lv_obj_set_style_layout(page, LV_LAYOUT_FLEX, 0);
+    lv_obj_set_flex_flow(page, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_all(page, 15, 0);
+    lv_obj_set_style_pad_gap(page, 12, 0);
+
+    // ГЛАВНЫЙ ЗАГОЛОВОК СТРАНИЦЫ
+    lv_obj_t *sec_title = label(page, "ИНФОРМАЦИЯ / ДИАГНОСТИКА", ST_TEXT);
+    
+    // --- БЛОК КНОПОК УПРАВЛЕНИЯ (Тест связи и Очистка) ---
+    lv_obj_t *btn_row = lv_obj_create(page);
+    lv_obj_remove_style_all(btn_row);
+    lv_obj_set_size(btn_row, LV_PCT(100), 45);
+    
+    // Настраиваем кнопки в один горизонтальный Flex-ряд
+    lv_obj_set_style_layout(btn_row, LV_LAYOUT_FLEX, 0);
+    lv_obj_set_flex_flow(btn_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_style_pad_gap(btn_row, 15, 0);
+
+    // Кнопка "Тест связи"
+    lv_obj_t *btn_test = button(btn_row, "Тест связи", ST_BTN_BLUE);
+    lv_obj_set_size(btn_test, 120, 38);
+    lv_obj_add_event_cb(btn_test, test_comm_click_cb, LV_EVENT_CLICKED, NULL);
+
+    // Кнопка "Очистить тест"
+    lv_obj_t *btn_clear = button(btn_row, "Очистить/тест", ST_BTN_BLUE);
+    lv_obj_set_size(btn_clear, 130, 38);
+    lv_obj_add_event_cb(btn_clear, clear_log_click_cb, LV_EVENT_CLICKED, NULL);
+
+    // ПОДЗАГОЛОВОК СЕКЦИИ ЖУРНАЛА
+    lv_obj_t *log_title = label(page, "4.1 Журнал", ST_TEXT);
+    lv_obj_set_style_text_color(log_title, lv_color_hex(0x3498DB), 0); // Синий акцент под цвет кнопок
+
+    // --- ГЛОБАЛЬНЫЙ КОНТЕЙНЕР ЖУРНАЛА СОБЫТИЙ ---
+    hmi_log_container = lv_obj_create(page);
+    
+    // Задаем ширину 100%, а по высоте жестко ограничиваем в 260px,
+    // чтобы панель аккуратно встала до нижней границы футера экрана 800х480
+    lv_obj_set_size(hmi_log_container, LV_PCT(100), 260); 
+    
+    lv_obj_add_style(hmi_log_container, ST_PANEL, 0);    // Накладываем твой темно-серый стиль панели
+    lv_obj_set_style_layout(hmi_log_container, LV_LAYOUT_FLEX, 0);
+    lv_obj_set_flex_flow(hmi_log_container, LV_FLEX_FLOW_COLUMN); // Логи пишутся сверху вниз
+    lv_obj_set_style_pad_all(hmi_log_container, 12, 0);
+    lv_obj_set_style_pad_gap(hmi_log_container, 6, 0);
+    
+    // Разрешаем вертикальный скролл строк
+    lv_obj_add_flag(hmi_log_container, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollbar_mode(hmi_log_container, LV_SCROLLBAR_MODE_AUTO);
+
+    // НАПОЛНЯЕМ СТАРТОВЫМИ ЛОГАМИ ПРИ СОЗДАНИИ ЭКРАНА
+    hmi_log_add("OK", "Система включена", lv_color_hex(0x2ECC71));
+    hmi_log_add("OK", "Датчик давления найден", lv_color_hex(0x2ECC71));
+    hmi_log_add("WARN", "Ручной вход в настройки", lv_color_hex(0xE67E22));
+}
+
+
 static void kb_value_changed_cb(lv_event_t * e)
 {
     // Проверяем, что событие — именно изменение текста
@@ -47,22 +238,26 @@ static void kb_value_changed_cb(lv_event_t * e)
     const char * text = lv_textarea_get_text(modal_ta);
     int32_t current_input = atoi(text);
 
-    int32_t max_limit = 99999; // Значение по умолчанию, если регистр не распознан
+    int32_t max_limit = 99999;
 
-    // Задаем жесткие потолки (максимумы) для каждого регистра
+    // Задаем только верхние потолки для блокировки на лету
     if(current_editing_val == &temp_reg9)       max_limit = 1000;
     else if(current_editing_val == &temp_reg10) max_limit = 4095;
     else if(current_editing_val == &temp_reg11) max_limit = 7;
     else if(current_editing_val == &temp_reg17) max_limit = 31;
 
-    // ЕСЛИ ВВЕДЕННОЕ ЧИСЛО ПРЕВЫШАЕТ МАКСИМУМ:
+    // Новые лимиты для таймеров с экрана:
+    else if(current_editing_val == &temp_reg12) max_limit = 120;   // Время разгона, макс 120 сек
+    else if(current_editing_val == &temp_reg13) max_limit = 10000; // Стабилизация, макс 10000 мс
+    else if(current_editing_val == &temp_reg14) max_limit = 10000; // Задержка аварии, макс 10000 мс
+    else if(current_editing_val == &temp_reg15) max_limit = 60000; // Включение после аварии, макс 60000 мс (1 мин)
+    else if(current_editing_val == &temp_reg16) max_limit = 5000;  // Реакция датчика, макс 5000 мс
+
+
+    // Если оператор пытается набрать лишнюю цифру, ломающую разрядность:
     if(current_input > max_limit) 
     {
-        // Вызываем встроенную команду удаления последнего символа (BackSpace)
-        lv_textarea_delete_char(modal_ta);
-        
-        // Опционально: можно заставить экран кратковременно моргнуть 
-        // или издать писк бузером, сигнализируя о запрете ввода
+        lv_textarea_delete_char(modal_ta); // Мгновенно стираем лишний символ!
     }
 }
 
@@ -111,6 +306,7 @@ static void settings_page_create(lv_obj_t *parent)
         "2. Таймеры и задержки",
         "3. Защита сухого хода",
         "4. Диагностика системы",
+        "4.2 График давления",
         "5. Сетевые настройки"
     };
 
@@ -147,30 +343,48 @@ static void settings_page_create(lv_obj_t *parent)
     build_calibration_sub_page(sub_pages[0]);
     build_timers_sub_page(sub_pages[1]);
 
+    build_info_sub_page(sub_pages[3]);
+    build_chart_sub_page(sub_pages[4]);
+
     lv_obj_clear_flag(sub_pages[0], LV_OBJ_FLAG_HIDDEN); // По умолчанию открыта первая
     active_sub_page = 0;
 
-    // --- НИЖНИЙ ФУТЕР ---
+    // --- НИЖНИЙ ФУТЕР (НАДЕЖНЫЙ ЖЕСТКИЙ FLEX) ---
     lv_obj_t *footer = lv_obj_create(settings_page);
     lv_obj_remove_style_all(footer);
     lv_obj_set_grid_cell(footer, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
-    lv_obj_set_flex_flow(footer, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(footer, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-
-    lv_obj_t *hint = label(footer, "Редактирование параметров. После изменения нажмите \"Сохранить\".", ST_MUTED);
     
+    // Включаем чистый Flex-ряд без права переноса элементов на новую строку!
+    lv_obj_set_style_layout(footer, LV_LAYOUT_FLEX, 0);
+    lv_obj_set_flex_flow(footer, LV_FLEX_FLOW_ROW); // Строго в одну линию!
+    lv_obj_set_flex_align(footer, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_hor(footer, 15, 0);
+
+    // 1. ПОДСКАЗКА: Занимает все свободное пространство слева
+    lv_obj_t *hint = label(footer, "Измените параметры и нажмите \"Сохранить\".", ST_MUTED);
+    lv_label_set_long_mode(hint, LV_LABEL_LONG_WRAP);
+    lv_obj_set_flex_grow(hint, 1); // Выталкивает кнопки в самый правый угол!
+
+    // 2. КОНТЕЙНЕР КНОПОК: Строго справа
     lv_obj_t *btn_box = lv_obj_create(footer);
     lv_obj_remove_style_all(btn_box);
+    lv_obj_set_size(btn_box, 280, 45); // Даем жесткие размеры контейнеру кнопок
+    
+    lv_obj_set_style_layout(btn_box, LV_LAYOUT_FLEX, 0);
     lv_obj_set_flex_flow(btn_box, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(btn_box, LV_FLEX_ALIGN_END, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_gap(btn_box, 15, 0);
 
+    // Кнопка Сохранить
     lv_obj_t *save_btn = button(btn_box, "Сохранить", ST_BTN_GREEN);
     lv_obj_set_size(save_btn, 130, 42);
     lv_obj_add_event_cb(save_btn, hmi_settings_save_event, LV_EVENT_CLICKED, NULL);
 
+    // Кнопка Отмена
     lv_obj_t *back_btn = button(btn_box, "Отмена", ST_BTN_RED);
     lv_obj_set_size(back_btn, 130, 42);
-    lv_obj_add_event_cb(back_btn, hmi_events.settings_event, LV_EVENT_CLICKED, NULL); 
+    lv_obj_add_event_cb(back_btn, hmi_events.settings_event, LV_EVENT_CLICKED, NULL);
+ 
 }
 
 // Вкладка 1: Калибровка датчиков и входов
@@ -195,17 +409,25 @@ static void build_calibration_sub_page(lv_obj_t *page)
     create_param_row(page, "Номер входа датчика уровня воды", "Дискретный вход релейного датчика", "Регистр 17", &temp_reg17);
 }
 
-// Вкладка 2: Таймеры (заготовка для следующих шагов)
-static void build_timers_sub_page(lv_obj_t *page)
+static void build_timers_sub_page(lv_obj_t * page)
 {
+    lv_obj_set_style_layout(page, LV_LAYOUT_FLEX, 0);
     lv_obj_set_flex_flow(page, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_all(page, 10, 0);
-    lv_obj_set_style_pad_gap(page, 10, 0);
+    lv_obj_set_style_pad_all(page, 15, 0);
+    lv_obj_set_style_pad_gap(page, 12, 0);
     lv_obj_add_flag(page, LV_OBJ_FLAG_SCROLLABLE);
 
-    lv_obj_t *sec = label(page, "Временные параметры системы", ST_TEXT);
-    lv_obj_set_style_text_color(sec, lv_color_hex(0x3498DB), 0);
+    lv_obj_t *sec_title = label(page, "2. Таймеры и задержки", ST_TEXT);
+    lv_obj_set_style_text_color(sec_title, lv_color_hex(0x3498DB), 0);
+
+    // Генерируем строки строго по фотографии экрана
+    create_param_row(page, "Время разгона системы", "секунды", "Регистр 12", &temp_reg12);
+    create_param_row(page, "Время стабилизации системы", "миллисекунды", "Регистр 13", &temp_reg13);
+    create_param_row(page, "Задержка аварии по уровню", "миллисекунды", "Регистр 14", &temp_reg14);
+    create_param_row(page, "Задержка включения после аварии", "миллисекунды", "Регистр 15", &temp_reg15);
+    create_param_row(page, "Время реакции датчика уровня воды", "миллисекунды", "Регистр 16", &temp_reg16);
 }
+
 
 static void create_param_row(lv_obj_t *parent, const char *name, const char *desc, const char *reg_name, int32_t *val_ptr)
 {
@@ -240,6 +462,8 @@ static void create_param_row(lv_obj_t *parent, const char *name, const char *des
     lv_obj_t *lbl_desc = label(txt_box, desc, ST_MUTED);
     lv_obj_set_style_text_font(lbl_desc, lv_font_16, 0); 
 
+    lv_label_set_long_mode(lbl_desc, LV_LABEL_LONG_WRAP);
+
     // Метка регистра (Регистр 9, 10...)
     lv_obj_t *lbl_reg = label(row, reg_name, ST_TEXT);
     lv_obj_set_style_text_color(lbl_reg, lv_color_hex(0xE67E22), 0); 
@@ -251,7 +475,7 @@ static void create_param_row(lv_obj_t *parent, const char *name, const char *des
     char char_buf[16];
     snprintf(char_buf, sizeof(char_buf), "%d", *val_ptr);
     lv_obj_t *val_btn = button(row, char_buf, ST_BTN_DARK);
-    lv_obj_add_style(val_btn, ST_BTN_SELECTED, LV_STATE_USER_1);
+    lv_obj_add_style(val_btn, ST_BTN_SELECT, LV_STATE_USER_1);
     lv_obj_set_size(val_btn, 90, 38);
     // Зажимаем в ячейку (2,0)
     lv_obj_set_grid_cell(val_btn, LV_GRID_ALIGN_END, 2, 1, LV_GRID_ALIGN_CENTER, 0, 1);
@@ -344,38 +568,45 @@ static void param_input_click_cb(lv_event_t * e)
 static void kb_event_cb(lv_event_t * e)
 {
     lv_event_code_t code = lv_event_get_code(e);
-    if(code == LV_EVENT_READY) 
-    {
-        // Нажата галочка (✓) — сохраняем измененияconst 
+
+    // При закрытии модального окна просто тушим оранжевый свет на кнопке
+    if(code == LV_EVENT_READY || code == LV_EVENT_CANCEL) {
+        if(current_val_btn) {
+            lv_obj_remove_state(current_val_btn, LV_STATE_USER_1);
+        }
+    }
+
+    // Нажата галочка (✓) — сохраняем изменения
+    if(code == LV_EVENT_READY) {
         const char * text = lv_textarea_get_text(modal_ta);
         int32_t new_val = atoi(text);
-        if(current_editing_val) *current_editing_val = new_val;
-        // Динамически обновляем число на кнопке таблицы параметров
-        if(current_val_btn) 
-        {
-            lv_obj_t * label_obj = lv_obj_get_child(current_val_btn, 0);
-            if(label_obj) lv_label_set_text(label_obj, text);
+
+        // ВСЁ! Никаких лишних проверок if-else на минимумы. 
+        // Данные уже отфильтрованы валидатором на лету!
+        if(current_editing_val) {
+            *current_editing_val = new_val;
         }
-        
+
+        // Обновляем текст на кнопке в таблице
+        if(current_val_btn) {
+            lv_obj_t * label_obj = lv_obj_get_child(current_val_btn, 0);
+            if(label_obj) {
+                char valid_buf[16];
+                snprintf(valid_buf, sizeof(valid_buf), "%ld", (long)new_val);
+                lv_label_set_text(label_obj, valid_buf);
+            }
+        }
+
         lv_obj_delete(modal_kb_bg);
         modal_kb_bg = NULL;
     }
-    else if(code == LV_EVENT_CANCEL) 
-    {
-        // Нажат крестик (X) — отмена ввода
+    // Нажат крестик (X) — просто закрываем окно
+    else if(code == LV_EVENT_CANCEL) {
         lv_obj_delete(modal_kb_bg);
         modal_kb_bg = NULL;
     }
-
-    if (current_val_btn && button_old_parent) {
-        lv_obj_remove_state(current_val_btn, LV_STATE_USER_1);
-        lv_obj_set_parent(current_val_btn, button_old_parent);
-        lv_obj_move_to_index(current_val_btn, button_old_index);
-        lv_obj_set_grid_cell(current_val_btn, LV_GRID_ALIGN_END, 2,1, LV_GRID_ALIGN_CENTER, 0,1);
-        lv_obj_update_layout(current_val_btn);
-    }
-
 }
+
 
 static void menu_tab_event_cb(lv_event_t * e)
 {
@@ -393,6 +624,11 @@ static void menu_tab_event_cb(lv_event_t * e)
 int32_t modbus_reg9 = 180;
 int32_t modbus_reg10 = 3850;
 int32_t modbus_reg11 = 1;
+int32_t modbus_reg12 = 8;
+int32_t modbus_reg13 = 1500;
+int32_t modbus_reg14 = 3000;
+int32_t modbus_reg15 = 10000;
+int32_t modbus_reg16 = 500;
 int32_t modbus_reg17 = 2;
 
 static void settings_page_show(void){
@@ -401,6 +637,11 @@ static void settings_page_show(void){
         temp_reg9  = modbus_reg9;
         temp_reg10 = modbus_reg10;
         temp_reg11 = modbus_reg11;
+        temp_reg12 = modbus_reg12;
+        temp_reg13 = modbus_reg13;
+        temp_reg14 = modbus_reg14;
+        temp_reg15 = modbus_reg15;
+        temp_reg16 = modbus_reg16;
         temp_reg17 = modbus_reg17;
         
         lv_obj_clear_flag(settings_page, LV_OBJ_FLAG_HIDDEN);
